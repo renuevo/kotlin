@@ -3,6 +3,7 @@ description = "Kotlin Android Extensions Compiler"
 
 plugins {
     kotlin("jvm")
+    `maven-publish`
     id("jps-compatible")
 }
 
@@ -12,11 +13,11 @@ val androidExtensionsRuntimeForTests by configurations.creating
 dependencies {
     testCompileOnly(intellijCoreDep()) { includeJars("intellij-core") }
 
-    compile(project(":compiler:util"))
-    compile(project(":compiler:plugin-api"))
-    compile(project(":compiler:frontend"))
-    compile(project(":compiler:frontend.java"))
-    compile(project(":compiler:backend"))
+    compileOnly(project(":compiler:util"))
+    compileOnly(project(":compiler:plugin-api"))
+    compileOnly(project(":compiler:frontend"))
+    compileOnly(project(":compiler:frontend.java"))
+    compileOnly(project(":compiler:backend"))
     compileOnly(project(":kotlin-android-extensions-runtime"))
     compileOnly(intellijCoreDep()) { includeJars("intellij-core") }
     compileOnly(intellijDep()) { includeJars("asm-all", rootProject = rootProject) }
@@ -60,4 +61,23 @@ projectTest {
         systemProperty("ideaSdk.androidPlugin.path", androidPluginPath)
         systemProperty("robolectric.classpath", robolectricClasspath.asPath)
     }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("KotlinPlugin") {
+            from(components["java"])
+        }
+    }
+
+    repositories {
+        maven(findProperty("deployRepoUrl") ?: "${rootProject.buildDir}/repo")
+    }
+}
+
+// Disable default `publish` task so publishing will not be done during maven artifact publish
+// We should use specialized tasks since we have multiple publications in project
+tasks.named("publish") {
+    enabled = false
+    dependsOn.clear()
 }

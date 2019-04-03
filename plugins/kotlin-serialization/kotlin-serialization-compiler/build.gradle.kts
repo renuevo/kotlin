@@ -2,18 +2,19 @@ description = "Kotlin Serialization Compiler Plugin"
 
 plugins {
     kotlin("jvm")
+    `maven-publish`
     id("jps-compatible")
 }
 
 dependencies {
     compileOnly(intellijCoreDep()) { includeJars("intellij-core", "asm-all", rootProject = rootProject) }
 
-    compile(project(":compiler:plugin-api"))
-    compile(project(":compiler:frontend"))
-    compile(project(":compiler:backend"))
-    compile(project(":compiler:ir.backend.common"))
-    compile(project(":js:js.frontend"))
-    compile(project(":js:js.translator"))
+    compileOnly(project(":compiler:plugin-api"))
+    compileOnly(project(":compiler:frontend"))
+    compileOnly(project(":compiler:backend"))
+    compileOnly(project(":compiler:ir.backend.common"))
+    compileOnly(project(":js:js.frontend"))
+    compileOnly(project(":js:js.translator"))
 
     runtime(kotlinStdlib())
 
@@ -40,4 +41,23 @@ testsJar()
 
 projectTest(parallel = true) {
     workingDir = rootDir
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("KotlinPlugin") {
+            from(components["java"])
+        }
+    }
+
+    repositories {
+        maven(findProperty("deployRepoUrl") ?: "${rootProject.buildDir}/repo")
+    }
+}
+
+// Disable default `publish` task so publishing will not be done during maven artifact publish
+// We should use specialized tasks since we have multiple publications in project
+tasks.named("publish") {
+    enabled = false
+    dependsOn.clear()
 }

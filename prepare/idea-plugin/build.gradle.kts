@@ -3,7 +3,8 @@ import java.util.regex.Pattern.quote
 description = "Kotlin IDEA plugin"
 
 plugins {
-    `java-base`
+    `java-library`
+    `maven-publish`
 }
 
 repositories {
@@ -115,6 +116,7 @@ val gradleToolingModel by configurations.creating
 
 val libraries by configurations.creating {
     extendsFrom(gradleToolingModel)
+    exclude("org.jetbrains.intellij.deps", "trove4j") // Idea already has trove4j
 }
 
 val jpsPlugin by configurations.creating
@@ -123,8 +125,6 @@ configurations.all {
     resolutionStrategy {
         preferProjectModules()
     }
-
-    exclude("org.jetbrains.intellij.deps", "trove4j") // Idea already has trove4j
 }
 
 dependencies {
@@ -141,8 +141,16 @@ dependencies {
 
     libraries(kotlinStdlib("jdk8"))
 
+    api(commonDep("javax.inject"))
+    api(commonDep("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8"))
+    api(commonDep("org.jetbrains", "markdown"))
+    api(commonDep("io.javaslang", "javaslang"))
+
+    api(kotlinStdlib("jdk8"))
+
     libraryProjects.forEach {
         libraries(project(it)) { isTransitive = false }
+        api(project(it))
     }
 
     gradleToolingModel(project(":idea:kotlin-gradle-tooling")) { isTransitive = false }
@@ -176,4 +184,24 @@ tasks.register<Sync>("ideaPlugin") {
 
     rename(quote("-$version"), "")
     rename(quote("-$bootstrapKotlinVersion"), "")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("KotlinPlugin") {
+            artifactId = "kotlin-plugin-${IdeVersionConfigurator.currentIde.name.toLowerCase()}"
+            from(components["java"])
+        }
+    }
+
+    repositories {
+        maven(findProperty("deployRepoUrl") ?: "${rootProject.buildDir}/repo")
+    }
+}
+
+// Disable default `publish` task so publishing will not be done during maven artifact publish
+// We should use specialized tasks since we have multiple publications in project
+tasks.named("publish") {
+    enabled = false
+    dependsOn.clear()
 }
