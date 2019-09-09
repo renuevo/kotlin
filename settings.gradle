@@ -178,6 +178,8 @@ include ":kotlin-build-common",
         ":kotlin-gradle-plugin-model",
         ":kotlin-gradle-plugin-test-utils-embeddable",
         ":kotlin-gradle-plugin-integration-tests",
+        ":kotlin-gradle-plugin-integration-tests:generated:min-gradle",
+        ":kotlin-gradle-plugin-integration-tests:generated:max-gradle",
         ":kotlin-allopen",
         ":kotlin-noarg",
         ":kotlin-sam-with-receiver",
@@ -365,6 +367,8 @@ project(':kotlin-gradle-plugin').projectDir = "$rootDir/libraries/tools/kotlin-g
 project(':kotlin-gradle-plugin-model').projectDir = "$rootDir/libraries/tools/kotlin-gradle-plugin-model" as File
 project(':kotlin-gradle-plugin-test-utils-embeddable').projectDir = "$rootDir/libraries/tools/kotlin-gradle-plugin-test-utils-embeddable" as File
 project(':kotlin-gradle-plugin-integration-tests').projectDir = "$rootDir/libraries/tools/kotlin-gradle-plugin-integration-tests" as File
+project(':kotlin-gradle-plugin-integration-tests:generated:min-gradle').projectDir = "$rootDir/libraries/tools/kotlin-gradle-plugin-integration-tests/generated/min-gradle" as File
+project(':kotlin-gradle-plugin-integration-tests:generated:max-gradle').projectDir = "$rootDir/libraries/tools/kotlin-gradle-plugin-integration-tests/generated/max-gradle" as File
 project(':kotlin-allopen').projectDir = "$rootDir/libraries/tools/kotlin-allopen" as File
 project(':kotlin-noarg').projectDir = "$rootDir/libraries/tools/kotlin-noarg" as File
 project(':kotlin-sam-with-receiver').projectDir = "$rootDir/libraries/tools/kotlin-sam-with-receiver" as File

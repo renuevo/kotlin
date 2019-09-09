@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class AllOpenModelIT : BaseGradleIT() {
+open class AllOpenModelIT : BaseGradleIT() {
     @Test
     fun testAllOpenSimple() {
         val project = Project("allOpenSimple")

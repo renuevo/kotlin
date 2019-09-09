@@ -27,7 +27,7 @@ import java.io.File
 import kotlin.test.assertTrue
 
 @TestDataPath("\$CONTENT_ROOT/resources")
-class MultiplatformGradleIT : BaseGradleIT() {
+open class MultiplatformGradleIT : BaseGradleIT() {
 
     @Test
     fun testMultiplatformCompile() {

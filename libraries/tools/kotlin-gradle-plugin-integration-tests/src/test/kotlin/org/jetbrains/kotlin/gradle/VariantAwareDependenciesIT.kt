@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.gradle.util.modify
 import org.jetbrains.kotlin.gradle.util.testResolveAllConfigurations
 import org.junit.Test
 
-class VariantAwareDependenciesIT : BaseGradleIT() {
+open class VariantAwareDependenciesIT : BaseGradleIT() {
     private val gradleVersion = GradleVersionRequired.None
 
     @Test

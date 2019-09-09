@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.gradle.util.modify
 import org.junit.Test
 import java.io.File
 
-class BuildCacheIT : BaseGradleIT() {
+open class BuildCacheIT : BaseGradleIT() {
     override fun defaultBuildOptions(): BuildOptions =
         super.defaultBuildOptions().copy(withBuildCache = true)
 

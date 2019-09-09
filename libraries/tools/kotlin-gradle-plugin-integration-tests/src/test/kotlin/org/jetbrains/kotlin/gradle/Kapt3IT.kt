@@ -40,7 +40,7 @@ abstract class Kapt3BaseIT : BaseGradleIT() {
     }
 }
 
-class Kapt3WorkersIT : Kapt3IT() {
+open class Kapt3WorkersIT : Kapt3IT() {
     override fun kaptOptions(): KaptOptions =
         super.kaptOptions().copy(useWorkers = true)
 

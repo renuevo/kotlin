@@ -7,7 +7,7 @@ package org.jetbrains.kotlin.gradle
 
 import org.junit.Test
 
-class ConfigurationAvoidanceIT : BaseGradleIT() {
+open class ConfigurationAvoidanceIT : BaseGradleIT() {
 
     @Test
     fun testUnrelatedTaskNotConfigured() = with(Project("simpleProject", GradleVersionRequired.AtLeast("4.10.2"))) {

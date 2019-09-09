@@ -8,7 +8,7 @@ package org.jetbrains.kotlin.gradle
 import org.jetbrains.kotlin.gradle.util.modify
 import org.junit.Test
 
-class JavaUpToDateIT : BaseGradleIT() {
+open class JavaUpToDateIT : BaseGradleIT() {
     @Test
     fun testKotlinMethodBodyIsChanged() {
         val project = Project("javaUpToDate")

@@ -19,35 +19,39 @@ package org.jetbrains.kotlin.gradle
 import org.gradle.util.GradleVersion
 import org.junit.Assume
 
-sealed class GradleVersionRequired(val minVersion: String, val maxVersion: String?) {
+sealed class GradleVersionRequired(val minVersion: String, val maxVersion: String) {
     companion object {
-        const val OLDEST_SUPPORTED = "4.9"
+        private val OLDEST_SUPPORTED = "4.9"
+        private val NEWEST_TESTED = "5.3-rc-2"
+    }
+
+    init {
+        check(minVersion.toGradleVersion() >= OLDEST_SUPPORTED.toGradleVersion()) {
+            "minVersion ($minVersion) is older than the oldest supported ($OLDEST_SUPPORTED)"
+        }
+        check(maxVersion.toGradleVersion() <= NEWEST_TESTED.toGradleVersion()) {
+            "maxVersion ($maxVersion) is newer than the newest tested ($NEWEST_TESTED)"
+        }
     }
 
     class Exact(version: String) : GradleVersionRequired(version, version)
 
-    class AtLeast(version: String) : GradleVersionRequired(version, null)
+    class AtLeast(version: String) : GradleVersionRequired(version, NEWEST_TESTED)
 
     class InRange(minVersion: String, maxVersion: String) : GradleVersionRequired(minVersion, maxVersion)
 
     class Until(maxVersion: String) : GradleVersionRequired(OLDEST_SUPPORTED, maxVersion)
 
-    object None : GradleVersionRequired(GradleVersionRequired.OLDEST_SUPPORTED, null)
+    object None : GradleVersionRequired(OLDEST_SUPPORTED, NEWEST_TESTED)
 }
 
 
-fun BaseGradleIT.Project.chooseWrapperVersionOrFinishTest(): String {
-    val gradleVersionForTests = System.getProperty("kotlin.gradle.version.for.tests")?.toGradleVersion()
-    val minVersion = gradleVersionRequirement.minVersion.toGradleVersion()
-    val maxVersion = gradleVersionRequirement.maxVersion?.toGradleVersion()
+fun BaseGradleIT.Project.chooseWrapperVersionOrFinishTest(): String = gradleVersionRequirement.run {
+    if (testCase.useMinVersion) return minVersion
 
-    if (gradleVersionForTests == null) {
-        return minVersion.version
-    }
-
-    Assume.assumeTrue(minVersion <= gradleVersionForTests && (maxVersion == null || gradleVersionForTests <= maxVersion))
-
-    return gradleVersionForTests.version
+    // we don't want to test with the same version twice
+    Assume.assumeTrue(minVersion != maxVersion)
+    return maxVersion
 }
 
 private fun String.toGradleVersion() = GradleVersion.version(this)

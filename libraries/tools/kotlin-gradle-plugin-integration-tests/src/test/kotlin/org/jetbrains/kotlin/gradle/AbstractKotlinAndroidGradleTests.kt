@@ -401,7 +401,7 @@ open class KotlinAndroid32GradleIT : KotlinAndroid3GradleIT() {
     }
 }
 
-class KotlinAndroid30GradleIT : KotlinAndroid3GradleIT() {
+open class KotlinAndroid30GradleIT : KotlinAndroid3GradleIT() {
     override val androidGradlePluginVersion: AGPVersion
         get() = AGPVersion.v3_0_0
 

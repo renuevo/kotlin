@@ -6,7 +6,7 @@ import org.junit.Assume
 import org.junit.Test
 import java.io.File
 
-class UpToDateIT : BaseGradleIT() {
+open class UpToDateIT : BaseGradleIT() {
     @Test
     fun testLanguageVersionChange() {
         testMutations(

@@ -10,7 +10,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class KaptModelIT : BaseGradleIT() {
+open class KaptModelIT : BaseGradleIT() {
     @Test
     fun testKaptSimple() {
         val project = Project("simple", directoryPrefix = "kapt2")

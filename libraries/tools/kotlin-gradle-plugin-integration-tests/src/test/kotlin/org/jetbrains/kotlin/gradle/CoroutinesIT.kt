@@ -19,7 +19,7 @@ package org.jetbrains.kotlin.gradle
 import org.junit.Test
 import java.io.File
 
-class CoroutinesIT : BaseGradleIT() {
+open class CoroutinesIT : BaseGradleIT() {
     @Test
     fun testCoroutinesJvmDefault() {
         jvmProject.doTest("default", null)

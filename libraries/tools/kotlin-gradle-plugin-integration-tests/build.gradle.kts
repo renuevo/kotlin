@@ -1,5 +1,4 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.pill.PillExtension
 
 plugins {
@@ -44,21 +43,6 @@ dependencies {
     testCompileOnly(project(":kotlin-test:kotlin-test-common")) { isTransitive = false }
 }
 
-// Aapt2 from Android Gradle Plugin 3.2 and below does not handle long paths on Windows.
-val shortenTempRootName = System.getProperty("os.name")!!.contains("Windows")
-
-// additional configuration in tasks.withType<Test> below
-projectTest("test", shortenTempRootName = shortenTempRootName) {}
-
-projectTest("testAdvanceGradleVersion", shortenTempRootName = shortenTempRootName) {
-    val gradleVersionForTests = "5.3-rc-2"
-    systemProperty("kotlin.gradle.version.for.tests", gradleVersionForTests)
-}
-
-tasks.named<Task>("check") {
-    dependsOn("testAdvanceGradleVersion")
-}
-
 gradle.taskGraph.whenReady {
     // Validate that all dependencies "install" tasks are added to "test" dependencies
     // Test dependencies are specified as paths to avoid forcing dependency resolution
@@ -82,86 +66,126 @@ gradle.taskGraph.whenReady {
     }
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jdkHome = rootProject.extra["JDK_18"] as String
-    kotlinOptions.jvmTarget = "1.8"
+configureCommonTasks()
+
+testsJar {}
+
+val generateTests by generator("org.jetbrains.kotlin.gradle.generators.GenerateTestsWithDifferentGradleVersionsKt")
+
+configureGeneratedTestsSubProject("generated:max-gradle")
+configureGeneratedTestsSubProject("generated:min-gradle")
+
+fun configureGeneratedTestsSubProject(relativePath: String) {
+    project(relativePath) {
+        plugins.apply("kotlin")
+        plugins.apply("jps-compatible")
+
+        pill {
+            variant = PillExtension.Variant.FULL
+        }
+
+        sourceSets {
+            "test" { projectDefault() }
+        }
+
+        dependencies {
+            testCompile(projectTests(":kotlin-gradle-plugin-integration-tests"))
+            testRuntime(project(":kotlin-gradle-plugin-integration-tests", configuration = "runtime"))
+        }
+
+        configureCommonTasks()
+    }
 }
 
-tasks.withType<Test> {
-    onlyIf { !project.hasProperty("noTest") }
+fun Project.configureCommonTasks() {
+    // Aapt2 from Android Gradle Plugin 3.2 and below does not handle long paths on Windows.
+    val shortenTempRootName = System.getProperty("os.name")!!.contains("Windows")
 
-    dependsOn(":kotlin-gradle-plugin:validateTaskProperties")
-    dependsOn(
-        ":kotlin-allopen:install",
-        ":kotlin-allopen:plugin-marker:install",
-        ":kotlin-noarg:install",
-        ":kotlin-allopen:plugin-marker:install",
-        ":kotlin-sam-with-receiver:install",
-        ":kotlin-android-extensions:install",
-        ":kotlin-build-common:install",
-        ":kotlin-compiler-embeddable:install",
-        ":kotlin-gradle-plugin:install",
-        ":kotlin-gradle-plugin:plugin-marker:install",
-        ":kotlin-reflect:install",
-        ":kotlin-annotation-processing-gradle:install",
-        ":kotlin-test:kotlin-test-jvm:install",
-        ":kotlin-gradle-subplugin-example:install",
-        ":kotlin-stdlib-jdk8:install",
-        ":examples:annotation-processor-example:install",
-        ":kotlin-scripting-common:install",
-        ":kotlin-scripting-jvm:install",
-        ":kotlin-scripting-compiler-embeddable:install",
-        ":kotlin-test-js-runner:install",
-        ":kotlin-source-map-loader:install"
-    )
-
-    executable = "${rootProject.extra["JDK_18"]!!}/bin/java"
-
-    systemProperty("kotlinVersion", rootProject.extra["kotlinVersion"] as String)
-    systemProperty("runnerGradleVersion", gradle.gradleVersion)
-    systemProperty("jdk9Home", rootProject.extra["JDK_9"] as String)
-    systemProperty("jdk10Home", rootProject.extra["JDK_10"] as String)
-    systemProperty("jdk11Home", rootProject.extra["JDK_11"] as String)
-
-    val mavenLocalRepo = System.getProperty("maven.repo.local")
-    if (mavenLocalRepo != null) {
-        systemProperty("maven.repo.local", mavenLocalRepo)
+    projectTest("test", shortenTempRootName = shortenTempRootName) {
+        workingDir = rootDir
     }
 
-    useAndroidSdk()
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        kotlinOptions.jdkHome = rootProject.extra["JDK_18"] as String
+        kotlinOptions.jvmTarget = "1.8"
+    }
 
-    maxHeapSize = "512m"
+    tasks.withType<Test> {
+        onlyIf { !project.hasProperty("noTest") }
 
-    testLogging {
-        // set options for log level LIFECYCLE
-        events("passed", "skipped", "failed", "standardOut")
-        showExceptions = true
-        exceptionFormat = TestExceptionFormat.FULL
-        showCauses = true
-        showStackTraces = true
+        dependsOn(":kotlin-gradle-plugin:validateTaskProperties")
+        dependsOn(
+            ":kotlin-allopen:install",
+            ":kotlin-allopen:plugin-marker:install",
+            ":kotlin-noarg:install",
+            ":kotlin-allopen:plugin-marker:install",
+            ":kotlin-sam-with-receiver:install",
+            ":kotlin-android-extensions:install",
+            ":kotlin-build-common:install",
+            ":kotlin-compiler-embeddable:install",
+            ":kotlin-gradle-plugin:install",
+            ":kotlin-gradle-plugin:plugin-marker:install",
+            ":kotlin-reflect:install",
+            ":kotlin-annotation-processing-gradle:install",
+            ":kotlin-test:kotlin-test-jvm:install",
+            ":kotlin-gradle-subplugin-example:install",
+            ":kotlin-stdlib-jdk8:install",
+            ":examples:annotation-processor-example:install",
+            ":kotlin-scripting-common:install",
+            ":kotlin-scripting-jvm:install",
+            ":kotlin-scripting-compiler-embeddable:install",
+            ":kotlin-test-js-runner:install",
+            ":kotlin-source-map-loader:install"
+        )
 
-        // set options for log level DEBUG and INFO
-        debug {
-            events("started", "passed", "skipped", "failed", "standardOut", "standardError")
-            exceptionFormat = TestExceptionFormat.FULL
+        executable = "${rootProject.extra["JDK_18"]!!}/bin/java"
+
+        systemProperty("kotlinVersion", rootProject.extra["kotlinVersion"] as String)
+        systemProperty("runnerGradleVersion", gradle.gradleVersion)
+        systemProperty("jdk9Home", rootProject.extra["JDK_9"] as String)
+        systemProperty("jdk10Home", rootProject.extra["JDK_10"] as String)
+        systemProperty("jdk11Home", rootProject.extra["JDK_11"] as String)
+
+        val mavenLocalRepo = System.getProperty("maven.repo.local")
+        if (mavenLocalRepo != null) {
+            systemProperty("maven.repo.local", mavenLocalRepo)
         }
-        info.events = debug.events
-        info.exceptionFormat = debug.exceptionFormat
 
-        addTestListener(object : TestListener {
-            override fun afterSuite(desc: TestDescriptor, result: TestResult) {
-                if (desc.parent == null) { // will match the outermost suite
-                    val output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
-                    val startItem = "|  "
-                    val endItem = "  |"
-                    val repeatLength = startItem.length + output.length + endItem.length
-                    println("\n" + ("-".repeat(repeatLength)) + "\n" + startItem + output + endItem + "\n" + ("-".repeat(repeatLength)))
-                }
+        useAndroidSdk()
+
+        maxHeapSize = "512m"
+
+        testLogging {
+            // set options for log level LIFECYCLE
+            events("passed", "skipped", "failed", "standardOut")
+            showExceptions = true
+            exceptionFormat = TestExceptionFormat.FULL
+            showCauses = true
+            showStackTraces = true
+
+            // set options for log level DEBUG and INFO
+            debug {
+                events("started", "passed", "skipped", "failed", "standardOut", "standardError")
+                exceptionFormat = TestExceptionFormat.FULL
             }
+            info.events = debug.events
+            info.exceptionFormat = debug.exceptionFormat
 
-            override fun beforeSuite(suite: TestDescriptor) {}
-            override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
-            override fun beforeTest(testDescriptor: TestDescriptor) {}
-        })
+            addTestListener(object : TestListener {
+                override fun afterSuite(desc: TestDescriptor, result: TestResult) {
+                    if (desc.parent == null) { // will match the outermost suite
+                        val output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+                        val startItem = "|  "
+                        val endItem = "  |"
+                        val repeatLength = startItem.length + output.length + endItem.length
+                        println("\n" + ("-".repeat(repeatLength)) + "\n" + startItem + output + endItem + "\n" + ("-".repeat(repeatLength)))
+                    }
+                }
+
+                override fun beforeSuite(suite: TestDescriptor) {}
+                override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
+                override fun beforeTest(testDescriptor: TestDescriptor) {}
+            })
+        }
     }
 }

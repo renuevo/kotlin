@@ -19,7 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class HierarchicalMppIT : BaseGradleIT() {
+open class HierarchicalMppIT : BaseGradleIT() {
     companion object {
         private val gradleVersion = GradleVersionRequired.AtLeast("5.0")
     }

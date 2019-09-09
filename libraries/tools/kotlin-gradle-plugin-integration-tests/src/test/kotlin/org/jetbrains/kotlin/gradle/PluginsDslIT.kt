@@ -7,7 +7,7 @@ import org.junit.Test
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
-class PluginsDslIT : BaseGradleIT() {
+open class PluginsDslIT : BaseGradleIT() {
 
     @Test
     fun testAllopenWithPluginsDsl() {

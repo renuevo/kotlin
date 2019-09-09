@@ -15,7 +15,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
-class KotlinProjectIT : BaseGradleIT() {
+open class KotlinProjectIT : BaseGradleIT() {
     override fun defaultBuildOptions(): BuildOptions {
         return super.defaultBuildOptions().copy(
             androidGradlePluginVersion = AGPVersion.v3_1_0,

@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.gradle.util.getFilesByNames
 import org.jetbrains.kotlin.gradle.util.modify
 import org.junit.Test
 
-class IncrementalJavaChangeDefaultIT : IncrementalCompilationJavaChangesBase(usePreciseJavaTracking = null) {
+open class IncrementalJavaChangeDefaultIT : IncrementalCompilationJavaChangesBase(usePreciseJavaTracking = null) {
     @Test
     override fun testModifySignatureTrackedJavaInLib() {
         doTest(trackedJavaClass, changeSignature, expectedAffectedSources = listOf("TrackedJavaClassChild.kt", "useTrackedJavaClass.kt"))
@@ -22,7 +22,7 @@ class IncrementalJavaChangeDefaultIT : IncrementalCompilationJavaChangesBase(use
     }
 }
 
-class IncrementalJavaChangePreciseIT : IncrementalCompilationJavaChangesBase(usePreciseJavaTracking = true) {
+open class IncrementalJavaChangePreciseIT : IncrementalCompilationJavaChangesBase(usePreciseJavaTracking = true) {
     @Test
     override fun testModifySignatureTrackedJavaInLib() {
         doTest(trackedJavaClass, changeSignature, expectedAffectedSources = listOf("TrackedJavaClassChild.kt", "useTrackedJavaClass.kt"))
@@ -34,7 +34,7 @@ class IncrementalJavaChangePreciseIT : IncrementalCompilationJavaChangesBase(use
     }
 }
 
-class IncrementalJavaChangeDisablePreciseIT : IncrementalCompilationJavaChangesBase(usePreciseJavaTracking = false) {
+open class IncrementalJavaChangeDisablePreciseIT : IncrementalCompilationJavaChangesBase(usePreciseJavaTracking = false) {
     @Test
     override fun testModifySignatureTrackedJavaInLib() {
         doTest(

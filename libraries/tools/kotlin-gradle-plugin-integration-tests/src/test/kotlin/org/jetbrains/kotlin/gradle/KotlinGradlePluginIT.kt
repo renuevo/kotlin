@@ -30,7 +30,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class KotlinGradleIT : BaseGradleIT() {
+open class KotlinGradleIT : BaseGradleIT() {
 
     @Test
     fun testCrossCompile() {

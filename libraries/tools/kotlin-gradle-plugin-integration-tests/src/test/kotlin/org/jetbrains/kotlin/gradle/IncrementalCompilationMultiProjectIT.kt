@@ -5,7 +5,7 @@ import org.junit.Assert
 import org.junit.Test
 import java.io.File
 
-class IncrementalCompilationJsMultiProjectIT : BaseIncrementalCompilationMultiProjectIT() {
+open class IncrementalCompilationJsMultiProjectIT : BaseIncrementalCompilationMultiProjectIT() {
     override fun defaultProject(): Project {
         val project = Project("incrementalMultiproject")
         project.setupWorkingDir()
@@ -29,7 +29,7 @@ class IncrementalCompilationJsMultiProjectIT : BaseIncrementalCompilationMultiPr
         get() = "compileKotlin2Js"
 }
 
-class IncrementalCompilationJvmMultiProjectIT : BaseIncrementalCompilationMultiProjectIT() {
+open class IncrementalCompilationJvmMultiProjectIT : BaseIncrementalCompilationMultiProjectIT() {
     override val additionalLibDependencies: String =
         "implementation \"org.jetbrains.kotlin:kotlin-test:${'$'}kotlin_version\""
 

@@ -26,7 +26,7 @@ import java.io.File
 import kotlin.test.assertEquals
 
 @RunWith(Parameterized::class)
-class BuildCacheRelocationIT : BaseGradleIT() {
+open class BuildCacheRelocationIT : BaseGradleIT() {
 
     override fun defaultBuildOptions(): BuildOptions =
         super.defaultBuildOptions().copy(

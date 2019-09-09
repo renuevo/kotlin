@@ -13,7 +13,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class NoArgModelIT : BaseGradleIT() {
+open class NoArgModelIT : BaseGradleIT() {
     @Test
     fun testNoArgKt18668() {
         val project = Project("noArgKt18668")

@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
-class CocoaPodsIT : BaseGradleIT() {
+open class CocoaPodsIT : BaseGradleIT() {
 
     // We use Kotlin DSL. Earlier Gradle versions fail at accessors codegen.
     val gradleVersion = GradleVersionRequired.None

@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.util.modify
 import org.junit.Test
 import java.io.File
 
-class TestRootAffectedIT : BaseGradleIT() {
+open class TestRootAffectedIT : BaseGradleIT() {
     @Test
     fun testSourceRootClassIsModifiedIC() {
         val project = Project("kotlinProject")

@@ -13,7 +13,7 @@ import org.junit.Test
 import java.io.File
 import kotlin.test.assertFalse
 
-class KaptIncrementalWithAggregatingApt : KaptIncrementalIT() {
+open class KaptIncrementalWithAggregatingApt : KaptIncrementalIT() {
 
     override fun getProject() =
         Project(

@@ -13,7 +13,7 @@ import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-class KaptIncrementalWithIsolatingApt : KaptIncrementalIT() {
+open class KaptIncrementalWithIsolatingApt : KaptIncrementalIT() {
 
     override fun getProject() =
         Project(

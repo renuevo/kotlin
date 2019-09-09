@@ -7,7 +7,7 @@ import org.junit.Assert
 import org.junit.Test
 import java.io.File
 
-class ExecutionStrategyJsIT : ExecutionStrategyIT() {
+open class ExecutionStrategyJsIT : ExecutionStrategyIT() {
     override fun setupProject(project: Project) {
         super.setupProject(project)
         val buildGradle = File(project.projectDir, "app/build.gradle")
@@ -26,7 +26,7 @@ class ExecutionStrategyJsIT : ExecutionStrategyIT() {
     }
 }
 
-class ExecutionStrategyJvmIT : ExecutionStrategyIT() {
+open class ExecutionStrategyJvmIT : ExecutionStrategyIT() {
     override fun CompiledProject.checkOutput() {
         val classesDir = kotlinClassesDir(subproject = "app") + "foo/"
         assertFileExists("${classesDir}MainKt.class")

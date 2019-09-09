@@ -160,12 +160,11 @@ class SubpluginsIT : BaseGradleIT() {
                     assertCompiledKotlinSources(project.relativize(bobGreet, aliceGreet, worldGreet, greetScriptTemplateKt))
                 }
             } else {
-                val usedGradleVersion =
-                    GradleVersion.version(
-                        System.getProperty("kotlin.gradle.version.for.tests")
-                            ?: project.gradleVersionRequirement.minVersion
-                    )
-                assertEquals(true, usedGradleVersion.version.substringBefore('.').toIntOrNull()?.let { it < 5 }, "Expected gradle version < 5, got ${usedGradleVersion.version}")
+                val usedGradleVersion = project.chooseWrapperVersionOrFinishTest()
+                assertEquals(
+                    true, usedGradleVersion.substringBefore('.').toIntOrNull()?.let { it < 5 },
+                    "Expected gradle version < 5, got $usedGradleVersion"
+                )
                 assertContains("kotlin scripting plugin: incompatible Gradle version")
                 isFailed = true
             }

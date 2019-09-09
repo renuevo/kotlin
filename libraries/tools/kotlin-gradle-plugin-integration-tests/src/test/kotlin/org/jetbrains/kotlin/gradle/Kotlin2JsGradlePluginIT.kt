@@ -11,7 +11,7 @@ import java.util.zip.ZipFile
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class Kotlin2JsGradlePluginIT : BaseGradleIT() {
+open class Kotlin2JsGradlePluginIT : BaseGradleIT() {
     @Test
     fun testBuildAndClean() {
         val project = Project("kotlin2JsProject")

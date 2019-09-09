@@ -24,7 +24,7 @@ import java.io.File
 // todo: test client file creation/deletion
 // todo: test daemon start (does not start every build)
 // todo: test daemon shutdown when gradle daemon dies
-class KotlinDaemonIT : BaseGradleIT() {
+open class KotlinDaemonIT : BaseGradleIT() {
 
     @Test
     fun testDaemonMultiproject() {

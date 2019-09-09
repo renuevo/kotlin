@@ -32,6 +32,8 @@ abstract class BaseGradleIT {
     open val defaultGradleVersion: GradleVersionRequired
         get() = GradleVersionRequired.None
 
+    open val useMinVersion: Boolean = true
+
     @Before
     fun setUp() {
         // Aapt2 from Android Gradle Plugin 3.2 and below does not handle long paths on Windows.
@@ -99,7 +101,7 @@ abstract class BaseGradleIT {
 
         private fun getEnvJDK_18() = System.getenv()["JDK_18"]
 
-        val resourcesRootFile = File("src/test/resources")
+        val resourcesRootFile = File("libraries/tools/kotlin-gradle-plugin-integration-tests/src/test/resources")
 
         @AfterClass
         @JvmStatic

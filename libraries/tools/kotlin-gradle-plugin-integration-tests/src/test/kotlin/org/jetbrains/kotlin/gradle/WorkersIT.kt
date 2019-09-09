@@ -7,7 +7,7 @@ package org.jetbrains.kotlin.gradle
 
 import org.junit.Test
 
-class WorkersIT : BaseGradleIT() {
+open class WorkersIT : BaseGradleIT() {
     @Test
     fun testParallelTasks() {
         parallelTasksImpl(isParallel = true)

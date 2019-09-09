@@ -8,7 +8,7 @@ import java.io.File
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class ClassFileIsRemovedIT : BaseGradleIT() {
+open class ClassFileIsRemovedIT : BaseGradleIT() {
     @Test
     fun testClassIsRemovedNonIC() {
         doTestClassIsRemoved(defaultBuildOptions())

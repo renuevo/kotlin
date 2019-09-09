@@ -8,7 +8,7 @@ package org.jetbrains.kotlin.gradle
 import org.junit.Test
 import kotlin.test.assertTrue
 
-class GradleDaemonMemoryIT : BaseGradleIT() {
+open class GradleDaemonMemoryIT : BaseGradleIT() {
     // For corresponding documentation, see https://docs.gradle.org/current/userguide/gradle_daemon.html
     // Setting user.variant to different value implies a new daemon process will be created.
     // In order to stop daemon process, special exit task is used ( System.exit(0) ).

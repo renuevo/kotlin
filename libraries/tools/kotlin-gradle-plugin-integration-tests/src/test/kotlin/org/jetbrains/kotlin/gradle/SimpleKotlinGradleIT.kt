@@ -5,7 +5,7 @@ import org.junit.Test
 import java.io.File
 import kotlin.test.assertTrue
 
-class SimpleKotlinGradleIT : BaseGradleIT() {
+open class SimpleKotlinGradleIT : BaseGradleIT() {
 
     @Test
     fun testSimpleCompile() {
