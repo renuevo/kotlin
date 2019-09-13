@@ -193,9 +193,9 @@ private val jvmFilePhases =
         singletonReferencesPhase then
 
         callableReferencePhase then
+        singleAbstractMethodPhase then
         localDeclarationsPhase then
 
-        singleAbstractMethodPhase then
         addContinuationPhase then
 
         jvmOverloadsAnnotationPhase then
