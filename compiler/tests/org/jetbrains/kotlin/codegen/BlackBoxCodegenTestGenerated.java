@@ -23640,6 +23640,11 @@ public class BlackBoxCodegenTestGenerated extends AbstractBlackBoxCodegenTest {
             runTest("compiler/testData/codegen/box/sam/castFromAny.kt");
         }
 
+        @TestMetadata("inlinedSamWrapper.kt")
+        public void testInlinedSamWrapper() throws Exception {
+            runTest("compiler/testData/codegen/box/sam/inlinedSamWrapper.kt");
+        }
+
         @TestMetadata("kt17091.kt")
         public void testKt17091() throws Exception {
             runTest("compiler/testData/codegen/box/sam/kt17091.kt");
@@ -23675,6 +23680,11 @@ public class BlackBoxCodegenTestGenerated extends AbstractBlackBoxCodegenTest {
             runTest("compiler/testData/codegen/box/sam/kt24825.kt");
         }
 
+        @TestMetadata("nullableSam.kt")
+        public void testNullableSam() throws Exception {
+            runTest("compiler/testData/codegen/box/sam/nullableSam.kt");
+        }
+
         @TestMetadata("partialSam.kt")
         public void testPartialSam() throws Exception {
             runTest("compiler/testData/codegen/box/sam/partialSam.kt");
@@ -23683,6 +23693,11 @@ public class BlackBoxCodegenTestGenerated extends AbstractBlackBoxCodegenTest {
         @TestMetadata("partialSamKT.kt")
         public void testPartialSamKT() throws Exception {
             runTest("compiler/testData/codegen/box/sam/partialSamKT.kt");
+        }
+
+        @TestMetadata("predicateSamWrapper.kt")
+        public void testPredicateSamWrapper() throws Exception {
+            runTest("compiler/testData/codegen/box/sam/predicateSamWrapper.kt");
         }
 
         @TestMetadata("receiverEvaluatedOnce.kt")
