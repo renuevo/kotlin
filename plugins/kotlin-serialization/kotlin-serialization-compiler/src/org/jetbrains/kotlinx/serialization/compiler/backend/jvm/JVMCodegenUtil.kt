@@ -218,16 +218,28 @@ internal fun InstructionAdapter.stackValueSerializerInstanceFromSerializer(codeg
     }
 }
 
+internal fun AbstractSerialGenerator.stackValueSerializerInstance(
+    codegen: ClassBodyCodegen, module: ModuleDescriptor, kType: KotlinType, maybeSerializer: ClassDescriptor?,
+    iv: InstructionAdapter?,
+    genericIndex: Int? = null,
+    genericSerializerFieldGetter: (InstructionAdapter.(Int, KotlinType) -> Unit)? = null
+): Boolean {
+    return checkValueSerializerInstance(codegen, module, kType, maybeSerializer, iv, genericIndex) { gi, kt ->
+        this?.run { genericSerializerFieldGetter?.invoke(this, gi, kt) }
+    }
+}
+
 // returns false is cannot not use serializer
 // use iv == null to check only (do not emit serializer onto stack)
-internal fun AbstractSerialGenerator.stackValueSerializerInstance(codegen: ClassBodyCodegen, module: ModuleDescriptor, kType: KotlinType, maybeSerializer: ClassDescriptor?,
-                                                                  iv: InstructionAdapter?,
-                                                                  genericIndex: Int? = null,
-                                                                  genericSerializerFieldGetter: (InstructionAdapter.(Int, KotlinType) -> Unit)? = null
+internal fun AbstractSerialGenerator.checkValueSerializerInstance(
+    codegen: ClassBodyCodegen, module: ModuleDescriptor, kType: KotlinType, maybeSerializer: ClassDescriptor?,
+    iv: InstructionAdapter?,
+    genericIndex: Int? = null,
+    genericSerializerFieldGetter: (InstructionAdapter?.(Int, KotlinType) -> Unit)? = null
 ): Boolean {
     if (maybeSerializer == null && genericIndex != null) {
         // get field from serializer object
-        iv?.run { genericSerializerFieldGetter?.invoke(this, genericIndex, kType) }
+        iv.run { genericSerializerFieldGetter?.invoke(this, genericIndex, kType) }
         return true
     }
     val serializer = maybeSerializer ?: return false
@@ -246,7 +258,7 @@ internal fun AbstractSerialGenerator.stackValueSerializerInstance(codegen: Class
                 ?: return false
         }
         // check if it can be properly serialized with its args recursively
-        if (!stackValueSerializerInstance(
+        if (!checkValueSerializerInstance(
                 codegen,
                 module,
                 argType,
@@ -271,7 +283,7 @@ internal fun AbstractSerialGenerator.stackValueSerializerInstance(codegen: Class
         fun instantiate(typeArgument: Pair<KotlinType, ClassDescriptor?>, writeSignature: Boolean = true) {
             val (argType, argSerializer) = typeArgument
             assert(
-                stackValueSerializerInstance(
+                checkValueSerializerInstance(
                     codegen,
                     module,
                     argType,
@@ -320,7 +332,7 @@ internal fun AbstractSerialGenerator.stackValueSerializerInstance(codegen: Class
                 fillArray(kSerializerType, subSerializers) { i, serializer ->
                     val (argType, argSerializer) = subClasses[i] to serializer
                     assert(
-                        stackValueSerializerInstance(
+                        checkValueSerializerInstance(
                             codegen,
                             module,
                             argType,
@@ -330,7 +342,7 @@ internal fun AbstractSerialGenerator.stackValueSerializerInstance(codegen: Class
                         ) { _, genericType ->
                             // if we encountered generic type parameter in one of subclasses of sealed class, use polymorphism from upper bound
                             assert(
-                                stackValueSerializerInstance(
+                                checkValueSerializerInstance(
                                     codegen,
                                     module,
                                     (genericType.constructor.declarationDescriptor as TypeParameterDescriptor).representativeUpperBound,

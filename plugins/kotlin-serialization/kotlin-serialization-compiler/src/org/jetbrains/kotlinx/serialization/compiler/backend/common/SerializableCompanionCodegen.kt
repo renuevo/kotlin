@@ -31,6 +31,8 @@ abstract class SerializableCompanionCodegen(
 ) : AbstractSerialGenerator(bindingContext, companionDescriptor) {
     protected val serializableDescriptor: ClassDescriptor = getSerializableClassDescriptorByCompanion(companionDescriptor)!!
 
+    protected val cacheFieldName = "cachedSerializer"
+
     fun generate() {
         val serializerGetterDescriptor = companionDescriptor.unsubstitutedMemberScope.getContributedFunctions(
             SERIALIZER_PROVIDER_NAME,
