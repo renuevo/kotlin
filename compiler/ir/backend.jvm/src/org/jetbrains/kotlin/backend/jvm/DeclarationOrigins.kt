@@ -42,5 +42,6 @@ interface JvmLoweredDeclarationOrigin : IrDeclarationOrigin {
     object ENUM_MAPPINGS_FOR_WHEN : IrDeclarationOriginImpl("ENUM_MAPPINGS_FOR_WHEN", isSynthetic = true)
     object SYNTHETIC_INLINE_CLASS_MEMBER : IrDeclarationOriginImpl("SYNTHETIC_INLINE_CLASS_MEMBER", isSynthetic = true)
     object INLINE_CLASS_GENERATED_IMPL_METHOD : IrDeclarationOriginImpl("INLINE_CLASS_GENERATED_IMPL_METHOD")
+    object HIDDEN_CONSTRUCTOR_BRIDGE : IrDeclarationOriginImpl("HIDDEN_CONSTRUCTOR_BRIDGE", isSynthetic = true)
     object GENERATED_ASSERTION_ENABLED_FIELD : IrDeclarationOriginImpl("GENERATED_ASSERTION_ENABLED_FIELD", isSynthetic = true)
 }

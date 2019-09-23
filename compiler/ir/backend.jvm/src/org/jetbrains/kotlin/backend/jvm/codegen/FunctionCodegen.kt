@@ -68,7 +68,10 @@ open class FunctionCodegen(
         if (!hasSyntheticFlag ||
             irFunction.origin == JvmLoweredDeclarationOrigin.SYNTHETIC_METHOD_FOR_PROPERTY_ANNOTATIONS ||
             //TODO: investigate this case: annotation here is generated twice in lowered function and in interface method overload
-            irFunction.origin == JvmLoweredDeclarationOrigin.GENERATED_SAM_IMPLEMENTATION
+            irFunction.origin == JvmLoweredDeclarationOrigin.GENERATED_SAM_IMPLEMENTATION ||
+            // For constructors hidden due to inline class parameters, kotlin reflection looks
+            // for annotations on the bridge method instead of the underlying constructor.
+            irFunction.origin == JvmLoweredDeclarationOrigin.HIDDEN_CONSTRUCTOR_BRIDGE
         ) {
             generateParameterAnnotations(functionView, methodVisitor, signature, classCodegen, context)
         }
