@@ -15,11 +15,13 @@ import org.jetbrains.kotlin.backend.common.phaser.makeIrFilePhase
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
 import org.jetbrains.kotlin.backend.jvm.intrinsics.receiverAndArgs
+import org.jetbrains.kotlin.backend.jvm.ir.isLambda
 import org.jetbrains.kotlin.backend.jvm.ir.shouldBeHidden
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.declarations.addValueParameter
 import org.jetbrains.kotlin.ir.builders.declarations.buildConstructor
@@ -33,8 +35,7 @@ import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.types.classifierOrNull
 import org.jetbrains.kotlin.ir.types.isSubtypeOfClass
 import org.jetbrains.kotlin.ir.util.*
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
-import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
+import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.load.java.JavaVisibilities
 import org.jetbrains.kotlin.load.java.JvmAbi
@@ -56,28 +57,48 @@ private class SyntheticAccessorLowering(val context: JvmBackendContext) : IrElem
         inlineLambdaToCallSite.putAll(InlineReferenceLocator.scan(context, irFile).lambdaToCallSite)
 
         // Unconditionally add bridges for hidden constructors
-        irFile.acceptChildrenVoid(object: IrElementVisitorVoid {
-            override fun visitElement(element: IrElement) = element.acceptChildrenVoid(this)
+        irFile.transformChildrenVoid(object: IrElementTransformerVoid() {
+            private val hiddenDeclarations = mutableSetOf<IrConstructor>()
 
-            private fun handleConstructor(declaration: IrConstructor) {
-                if (!declaration.shouldBeHidden)
-                    return
-
-                declaration.visibility = Visibilities.PRIVATE
-
-                functionMap.computeIfAbsent(declaration.symbol) {
-                    declaration.makeConstructorAccessor(true).symbol
+            private fun handleConstructor(declaration: IrConstructor): IrConstructorSymbol? {
+                if (declaration.shouldBeHidden) {
+                    declaration.visibility = Visibilities.PRIVATE
+                    hiddenDeclarations += declaration
                 }
+
+                if (declaration !in hiddenDeclarations)
+                    return null
+
+                return functionMap.getOrPut(declaration.symbol) {
+                    declaration.makeConstructorAccessor(true).symbol
+                } as IrConstructorSymbol
             }
 
-            override fun visitConstructor(declaration: IrConstructor) {
+            override fun visitConstructor(declaration: IrConstructor): IrStatement {
                 handleConstructor(declaration)
-                super.visitConstructor(declaration)
+                return super.visitConstructor(declaration)
             }
 
-            override fun visitConstructorCall(expression: IrConstructorCall) {
+            override fun visitConstructorCall(expression: IrConstructorCall): IrExpression {
                 handleConstructor(expression.symbol.owner)
-                super.visitConstructorCall(expression)
+                return super.visitConstructorCall(expression)
+            }
+
+            override fun visitFunctionReference(expression: IrFunctionReference): IrExpression {
+                val function = expression.symbol.owner
+
+                if (!expression.origin.isLambda && function is IrConstructor) {
+                    handleConstructor(function)?.let { accessor ->
+                        expression.transformChildrenVoid()
+                        return IrFunctionReferenceImpl(
+                            expression.startOffset, expression.endOffset, expression.type,
+                            accessor, accessor.descriptor, accessor.owner.typeParameters.size,
+                            accessor.owner.valueParameters.size, expression.origin
+                        )
+                    }
+                }
+
+                return super.visitFunctionReference(expression)
             }
         })
 
