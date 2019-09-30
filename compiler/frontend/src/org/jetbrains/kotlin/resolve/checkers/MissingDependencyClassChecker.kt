@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedMemberDescriptor
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.typeUtil.supertypes
 import org.jetbrains.kotlin.utils.newLinkedHashSetWithExpectedSize
 
 object MissingDependencyClassChecker : CallChecker {
@@ -94,6 +95,20 @@ object MissingDependencyClassChecker : CallChecker {
 
             val containerSource = (targetDescriptor as? DeserializedMemberDescriptor)?.containerSource
             incompatibilityDiagnosticFor(containerSource, element)?.let(context.trace::report)
+
+            val classifierType = when (targetDescriptor) {
+                is TypeAliasDescriptor -> targetDescriptor.expandedType
+                else -> targetDescriptor.defaultType
+            }
+
+            for (supertype in classifierType.supertypes()) {
+                val supertypeDeclarationDescriptor = supertype.constructor.declarationDescriptor
+                if (supertypeDeclarationDescriptor is NotFoundClasses.MockClassDescriptor) {
+                    context.trace.report(
+                        MISSING_DEPENDENCY_SUPERCLASS.on(element, supertypeDeclarationDescriptor.fqNameSafe, targetDescriptor.fqNameSafe)
+                    )
+                }
+            }
         }
     }
 }

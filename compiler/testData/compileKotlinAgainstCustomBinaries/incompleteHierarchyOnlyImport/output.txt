@@ -1,0 +1,4 @@
+compiler/testData/compileKotlinAgainstCustomBinaries/incompleteHierarchyOnlyImport/source.kt:1:13: error: cannot access 'test.Super' which is a supertype of 'test.Sub'. Check your module classpath for missing or conflicting dependencies
+import test.Sub.*;
+            ^
+COMPILATION_ERROR

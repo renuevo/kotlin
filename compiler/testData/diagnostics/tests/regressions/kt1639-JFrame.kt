@@ -1,4 +1,7 @@
 // JAVAC_EXPECTED_FILE
+// FULL_JDK
+// SKIP_TXT
+
 package test
 
 import javax.swing.JFrame
