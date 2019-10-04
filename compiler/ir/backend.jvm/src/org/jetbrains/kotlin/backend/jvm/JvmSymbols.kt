@@ -104,6 +104,10 @@ class JvmSymbols(
             addValueParameter("value", irBuiltIns.anyNType)
             addValueParameter("expression", irBuiltIns.stringType)
         }
+        klass.addFunction("stringPlus", irBuiltIns.stringType, isStatic = true).apply {
+            addValueParameter("self", irBuiltIns.stringType.makeNullable())
+            addValueParameter("other", irBuiltIns.anyNType)
+        }
     }
 
     val checkExpressionValueIsNotNull: IrSimpleFunctionSymbol =
@@ -114,6 +118,9 @@ class JvmSymbols(
 
     override val ThrowUninitializedPropertyAccessException: IrSimpleFunctionSymbol =
         intrinsicsClass.functions.single { it.owner.name.asString() == "throwUninitializedPropertyAccessException" }
+
+    val intrinsicStringPlus: IrFunctionSymbol =
+        intrinsicsClass.functions.single { it.owner.name.asString() == "stringPlus" }
 
     override val stringBuilder: IrClassSymbol
         get() = context.getTopLevelClass(FqName("java.lang.StringBuilder"))
@@ -427,6 +434,36 @@ class JvmSymbols(
     }
 
     val systemArraycopy: IrSimpleFunctionSymbol = systemClass.functionByName("arraycopy")
+
+    val javaLangString: IrClassSymbol = createClass(FqName("java.lang.String")) { klass ->
+        klass.addFunction("valueOf", irBuiltIns.stringType, isStatic = true).apply {
+            addValueParameter("obj", irBuiltIns.anyNType)
+        }
+
+        klass.addFunction("valueOf", irBuiltIns.stringType, isStatic = true).apply {
+            addValueParameter("b", irBuiltIns.booleanType)
+        }
+
+        klass.addFunction("valueOf", irBuiltIns.stringType, isStatic = true).apply {
+            addValueParameter("c", irBuiltIns.charType)
+        }
+
+        klass.addFunction("valueOf", irBuiltIns.stringType, isStatic = true).apply {
+            addValueParameter("i", irBuiltIns.intType)
+        }
+
+        klass.addFunction("valueOf", irBuiltIns.stringType, isStatic = true).apply {
+            addValueParameter("l", irBuiltIns.longType)
+        }
+
+        klass.addFunction("valueOf", irBuiltIns.stringType, isStatic = true).apply {
+            addValueParameter("f", irBuiltIns.floatType)
+        }
+
+        klass.addFunction("valueOf", irBuiltIns.stringType, isStatic = true).apply {
+            addValueParameter("d", irBuiltIns.doubleType)
+        }
+    }
 }
 
 private fun IrClassSymbol.functionByName(name: String): IrSimpleFunctionSymbol =
