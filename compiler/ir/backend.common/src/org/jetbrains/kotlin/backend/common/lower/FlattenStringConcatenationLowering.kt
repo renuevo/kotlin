@@ -11,18 +11,19 @@ import org.jetbrains.kotlin.backend.common.phaser.makeIrFilePhase
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrFile
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
 import org.jetbrains.kotlin.ir.expressions.impl.IrStringConcatenationImpl
+import org.jetbrains.kotlin.ir.types.isAny
+import org.jetbrains.kotlin.ir.types.isNullableAny
 import org.jetbrains.kotlin.ir.types.isStringClassType
-import org.jetbrains.kotlin.ir.util.fqNameSafe
 import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
-import org.jetbrains.kotlin.name.Name
 
 val flattenStringConcatenationPhase = makeIrFilePhase(
     ::FlattenStringConcatenationLowering,
@@ -76,21 +77,42 @@ class FlattenStringConcatenationLowering(val context: CommonBackendContext) : Fi
             KotlinBuiltIns.BUILT_INS_PACKAGE_FQ_NAME,
             KotlinBuiltIns.FQ_NAMES.string.toSafe()
         )
-        private val PLUS_NAME = Name.identifier("plus")
 
-        /** @return true if the given expression is a [IrStringConcatenation] or [String.plus] [IrCall]. */
+        /** @return true if the given expression is a [IrStringConcatenation], or an [IrCall] to [toString] or [String.plus]. */
         private fun isStringConcatenationExpression(expression: IrExpression): Boolean {
             return when (expression) {
                 is IrStringConcatenation -> true
                 is IrCall -> {
+                    if (expression.superQualifierSymbol != null)
+                        return false
+
                     val function = expression.symbol.owner
-                    val receiver = expression.dispatchReceiver ?: expression.extensionReceiver
-                    receiver != null &&
-                            receiver.type.isStringClassType() &&
-                            expression.type.isStringClassType() &&
-                            expression.valueArgumentsCount == 1 &&
-                            function.name == PLUS_NAME &&
-                            function.fqNameWhenAvailable?.parent() in PARENT_NAMES
+                    when (function.name.asString()) {
+                        "toString" -> {
+                            // Check that this is a call to method Any.toString or to the extension function
+                            // Any?.toString defined in the kotlin package.
+                            expression.valueArgumentsCount == 0
+                                    && ((expression.dispatchReceiver != null
+                                    && (expression.type.isAny() || (function as IrSimpleFunction).overriddenSymbols.isNotEmpty()))
+                                    || (function.dispatchReceiverParameter == null
+                                    && function.extensionReceiverParameter?.type?.isNullableAny() == true
+                                    && function.fqNameWhenAvailable?.parent() == KotlinBuiltIns.BUILT_INS_PACKAGE_FQ_NAME))
+                        }
+
+                        "plus" -> {
+                            // Check for string plus
+                            val receiver = expression.dispatchReceiver ?: expression.extensionReceiver
+                            receiver != null
+                                    && receiver.type.isStringClassType()
+                                    && expression.type.isStringClassType()
+                                    && expression.valueArgumentsCount == 1
+                                    && function.name.asString() == "plus"
+                                    && function.fqNameWhenAvailable?.parent() in PARENT_NAMES
+                        }
+
+                        else ->
+                            false
+                    }
                 }
                 else -> false
             }
