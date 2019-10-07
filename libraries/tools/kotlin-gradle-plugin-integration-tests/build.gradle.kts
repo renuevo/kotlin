@@ -95,6 +95,10 @@ fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: S
 
         val gradleHome = rootProject.buildDir.resolve("test-gradle-home/${gradleHomeDirName}")
         configureCommonTasks(gradleHome)
+
+        tasks.named("compileTestKotlin").configure {
+            dependsOn(generateTests)
+        }
     }
 }
 
