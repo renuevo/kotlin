@@ -22,6 +22,7 @@ import java.util.regex.Pattern
 import kotlin.test.*
 
 val SYSTEM_LINE_SEPARATOR: String = System.getProperty("line.separator")
+val GRADLE_HOME_FOR_TESTS = System.getProperty("gradle.home.for.tests")?.let { File(it).apply { mkdirs() } }
 
 abstract class BaseGradleIT {
 
@@ -346,6 +347,7 @@ abstract class BaseGradleIT {
             .newConnector()
             .useGradleVersion(wrapperVersion)
             .forProjectDirectory(projectDir)
+            .useGradleUserHomeDir(GRADLE_HOME_FOR_TESTS)
             .connect()
         val model = connection.action(ModelFetcherBuildAction(modelType)).withArguments(arguments).setEnvironmentVariables(env).run()
         connection.close()
@@ -754,6 +756,10 @@ Finished executing task ':$taskName'|
             }
 
             add("-Dorg.gradle.jvmargs=${options.gradleJvmArgs}")
+
+            GRADLE_HOME_FOR_TESTS?.run {
+                add("-Dgradle.user.home=${canonicalPath}")
+            }
 
             // Workaround: override a console type set in the user machine gradle.properties (since Gradle 4.3):
             add("--console=plain")

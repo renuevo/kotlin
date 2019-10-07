@@ -72,10 +72,10 @@ testsJar {}
 
 val generateTests by generator("org.jetbrains.kotlin.gradle.generators.GenerateTestsWithDifferentGradleVersionsKt")
 
-configureGeneratedTestsSubProject("generated:max-gradle")
-configureGeneratedTestsSubProject("generated:min-gradle")
+configureGeneratedTestsSubProject("generated:max-gradle", "max-ver")
+configureGeneratedTestsSubProject("generated:min-gradle", "min-ver")
 
-fun configureGeneratedTestsSubProject(relativePath: String) {
+fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: String) {
     project(relativePath) {
         plugins.apply("kotlin")
         plugins.apply("jps-compatible")
@@ -93,11 +93,12 @@ fun configureGeneratedTestsSubProject(relativePath: String) {
             testRuntime(project(":kotlin-gradle-plugin-integration-tests", configuration = "runtime"))
         }
 
-        configureCommonTasks()
+        val gradleHome = rootProject.buildDir.resolve("test-gradle-home/${gradleHomeDirName}")
+        configureCommonTasks(gradleHome)
     }
 }
 
-fun Project.configureCommonTasks() {
+fun Project.configureCommonTasks(gradleHome: File? = null) {
     // Aapt2 from Android Gradle Plugin 3.2 and below does not handle long paths on Windows.
     val shortenTempRootName = System.getProperty("os.name")!!.contains("Windows")
 
@@ -145,6 +146,10 @@ fun Project.configureCommonTasks() {
         systemProperty("jdk9Home", rootProject.extra["JDK_9"] as String)
         systemProperty("jdk10Home", rootProject.extra["JDK_10"] as String)
         systemProperty("jdk11Home", rootProject.extra["JDK_11"] as String)
+
+        gradleHome?.let {
+            systemProperty("gradle.home.for.tests", gradleHome.canonicalPath)
+        }
 
         val mavenLocalRepo = System.getProperty("maven.repo.local")
         if (mavenLocalRepo != null) {
