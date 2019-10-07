@@ -92,7 +92,7 @@ fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: S
 
         dependencies {
             testCompile(projectTests(":kotlin-gradle-plugin-integration-tests"))
-            testRuntime(project(":kotlin-gradle-plugin-integration-tests", configuration = "runtime"))
+            testRuntime(project(":kotlin-gradle-plugin-integration-tests", configuration = "testRuntime"))
         }
 
         configureCommonTasks(gradleHomeDirName)
