@@ -367,6 +367,8 @@ fun LookupElement.decorateAsStaticMember(
     val qualifierPresentation = classDescriptor.name.asString()
 
     return object: LookupElementDecorator<LookupElement>(this) {
+        private val descriptorIsCallableExtension = (memberDescriptor as? CallableDescriptor)?.extensionReceiverParameter != null
+
         override fun getAllLookupStrings(): Set<String> {
             return if (classNameAsLookupString) setOf(delegate.lookupString, qualifierPresentation) else super.getAllLookupStrings()
         }
@@ -374,7 +376,9 @@ fun LookupElement.decorateAsStaticMember(
         override fun renderElement(presentation: LookupElementPresentation) {
             delegate.renderElement(presentation)
 
-            presentation.itemText = qualifierPresentation + "." + presentation.itemText
+            if (!descriptorIsCallableExtension) {
+                presentation.itemText = qualifierPresentation + "." + presentation.itemText
+            }
 
             val tailText = " (" + DescriptorUtils.getFqName(classDescriptor.containingDeclaration) + ")"
             if (memberDescriptor is FunctionDescriptor) {
@@ -393,7 +397,7 @@ fun LookupElement.decorateAsStaticMember(
             val psiDocumentManager = PsiDocumentManager.getInstance(context.project)
             val file = context.file as KtFile
 
-            val addMemberImport = file.importDirectives.any { !it.isAllUnder && it.importPath?.fqName?.parent() == containerFqName }
+            val addMemberImport = descriptorIsCallableExtension || importFromSameParentIsPresent(file)
 
             if (addMemberImport) {
                 psiDocumentManager.commitAllDocuments()
@@ -402,6 +406,10 @@ fun LookupElement.decorateAsStaticMember(
             }
 
             super.handleInsert(context)
+        }
+
+        private fun importFromSameParentIsPresent(file: KtFile) = file.importDirectives.any {
+            !it.isAllUnder && it.importPath?.fqName?.parent() == containerFqName
         }
     }
 }
