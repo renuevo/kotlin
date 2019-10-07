@@ -22,7 +22,6 @@ import java.util.regex.Pattern
 import kotlin.test.*
 
 val SYSTEM_LINE_SEPARATOR: String = System.getProperty("line.separator")
-val GRADLE_HOME_FOR_TESTS = System.getProperty("gradle.home.for.tests")?.let { File(it).apply { mkdirs() } }
 
 abstract class BaseGradleIT {
 
@@ -100,25 +99,7 @@ abstract class BaseGradleIT {
         private const val MAX_DAEMON_RUNS = 30
         private const val MAX_ACTIVE_GRADLE_PROCESSES = 1
 
-        private fun getEnvJDK_18() = System.getenv()["JDK_18"]
-
         val resourcesRootFile = File("libraries/tools/kotlin-gradle-plugin-integration-tests/src/test/resources")
-
-        @AfterClass
-        @JvmStatic
-        @Synchronized
-        @Suppress("unused")
-        fun tearDownAll() {
-            // Latest gradle requires Java > 7
-            val environmentVariables = hashMapOf<String, String>()
-            getEnvJDK_18()?.let { environmentVariables["JAVA_HOME"] = it }
-            stopAllDaemons(environmentVariables)
-
-            gradleWrappers.values.forEach { wrapperDir ->
-                wrapperDir.deleteRecursively()
-            }
-            gradleWrappers.clear()
-        }
 
         @Synchronized
         fun prepareWrapper(
@@ -213,9 +194,7 @@ abstract class BaseGradleIT {
         val withBuildCache: Boolean = false,
         val kaptOptions: KaptOptions? = null,
         val parallelTasksInProject: Boolean? = null
-    ) {
-        val gradleJvmArgs: String = "-Xmx1024m -ea"
-    }
+    )
 
     data class KaptOptions(val verbose: Boolean, val useWorkers: Boolean, val incrementalKapt: Boolean = false, val includeCompileClasspath: Boolean = true)
 
@@ -703,6 +682,9 @@ Finished executing task ':$taskName'|
     private fun prettyPrintXml(uglyXml: String): String =
             XMLOutputter(Format.getPrettyFormat()).outputString(SAXBuilder().build(uglyXml.reader()))
 
+    /**
+     * @see [GRADLE_HOME_FOR_TESTS] for system parameters (such as -Xmx, -ea, etc.) set trough gradle.properties in Gradle home
+     */
     private fun Project.createGradleTailParameters(options: BuildOptions, params: Array<out String> = arrayOf()): List<String> =
         params.toMutableList().apply {
             add("--stacktrace")
@@ -755,12 +737,6 @@ Finished executing task ':$taskName'|
                 add("-Pkotlin.parallel.tasks.in.project=$it")
             }
 
-            add("-Dorg.gradle.jvmargs=${options.gradleJvmArgs}")
-
-            GRADLE_HOME_FOR_TESTS?.run {
-                add("-Dgradle.user.home=${canonicalPath}")
-            }
-
             // Workaround: override a console type set in the user machine gradle.properties (since Gradle 4.3):
             add("--console=plain")
             addAll(options.freeCommandLineArgs)
@@ -776,6 +752,8 @@ Finished executing task ':$taskName'|
             options.javaHome?.let {
                 put("JAVA_HOME", it.canonicalPath)
             }
+
+            put("GRADLE_USER_HOME", GRADLE_HOME_FOR_TESTS.canonicalPath)
         }
 
     private fun String.normalize() = this.lineSequence().joinToString(SYSTEM_LINE_SEPARATOR)

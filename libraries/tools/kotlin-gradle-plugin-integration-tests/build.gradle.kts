@@ -66,13 +66,15 @@ gradle.taskGraph.whenReady {
     }
 }
 
-configureCommonTasks()
+configureCommonTasks("default")
 
 testsJar {}
 
 val generateTests by generator("org.jetbrains.kotlin.gradle.generators.GenerateTestsWithDifferentGradleVersionsKt")
 
 configureGeneratedTestsSubProject("generated:max-gradle", "max-ver")
+
+val defaultGradleHomeDirName = "default"
 configureGeneratedTestsSubProject("generated:min-gradle", "min-ver")
 
 fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: String) {
@@ -93,8 +95,7 @@ fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: S
             testRuntime(project(":kotlin-gradle-plugin-integration-tests", configuration = "runtime"))
         }
 
-        val gradleHome = rootProject.buildDir.resolve("test-gradle-home/${gradleHomeDirName}")
-        configureCommonTasks(gradleHome)
+        configureCommonTasks(gradleHomeDirName)
 
         tasks.named("compileTestKotlin").configure {
             dependsOn(generateTests)
@@ -102,7 +103,7 @@ fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: S
     }
 }
 
-fun Project.configureCommonTasks(gradleHome: File? = null) {
+fun Project.configureCommonTasks(gradleHomeDirName: String) {
     // Aapt2 from Android Gradle Plugin 3.2 and below does not handle long paths on Windows.
     val shortenTempRootName = System.getProperty("os.name")!!.contains("Windows")
 
@@ -151,9 +152,8 @@ fun Project.configureCommonTasks(gradleHome: File? = null) {
         systemProperty("jdk10Home", rootProject.extra["JDK_10"] as String)
         systemProperty("jdk11Home", rootProject.extra["JDK_11"] as String)
 
-        gradleHome?.let {
-            systemProperty("gradle.home.for.tests", gradleHome.canonicalPath)
-        }
+        val gradleHomeForTests = rootProject.buildDir.resolve("test-gradle-home/${gradleHomeDirName}")
+        systemProperty("gradle.home.for.tests", gradleHomeForTests.canonicalPath)
 
         val mavenLocalRepo = System.getProperty("maven.repo.local")
         if (mavenLocalRepo != null) {
