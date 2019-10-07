@@ -66,15 +66,13 @@ gradle.taskGraph.whenReady {
     }
 }
 
-configureCommonTasks("default")
+configureCommonTasks()
 
 testsJar {}
 
 val generateTests by generator("org.jetbrains.kotlin.gradle.generators.GenerateTestsWithDifferentGradleVersionsKt")
 
 configureGeneratedTestsSubProject("generated:max-gradle", "max-ver")
-
-val defaultGradleHomeDirName = "default"
 configureGeneratedTestsSubProject("generated:min-gradle", "min-ver")
 
 fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: String) {
@@ -95,7 +93,8 @@ fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: S
             testRuntime(project(":kotlin-gradle-plugin-integration-tests", configuration = "testRuntime"))
         }
 
-        configureCommonTasks(gradleHomeDirName)
+        val gradleHome = rootProject.buildDir.resolve("test-gradle-home/${gradleHomeDirName}")
+        configureCommonTasks(gradleHome)
 
         tasks.named("compileTestKotlin").configure {
             dependsOn(generateTests)
@@ -103,9 +102,7 @@ fun configureGeneratedTestsSubProject(relativePath: String, gradleHomeDirName: S
     }
 }
 
-val isTeamcityBuild: Boolean by rootProject.extra
-
-fun Project.configureCommonTasks(gradleHomeDirName: String) {
+fun Project.configureCommonTasks(gradleHome: File? = null) {
     // Aapt2 from Android Gradle Plugin 3.2 and below does not handle long paths on Windows.
     val shortenTempRootName = System.getProperty("os.name")!!.contains("Windows")
 
@@ -154,21 +151,9 @@ fun Project.configureCommonTasks(gradleHomeDirName: String) {
         systemProperty("jdk10Home", rootProject.extra["JDK_10"] as String)
         systemProperty("jdk11Home", rootProject.extra["JDK_11"] as String)
 
-        val gradleHomeForTests = rootProject.buildDir.resolve("test-gradle-home/${gradleHomeDirName}")
-        systemProperty("gradle.for.tests.user.home", gradleHomeForTests.canonicalPath)
-
-        // 30 seconds
-        val gradleDaemonTimeoutMs = 30000L
-        systemProperty("gradle.for.tests.idle.timeout", gradleDaemonTimeoutMs.toString())
-        doLast {
-            if (isTeamcityBuild) {
-                // very hacky way to wait for all daemons to finish
-                val waitForMs = gradleDaemonTimeoutMs + 2000
-                logger.warn("Waiting $waitForMs ms for all tests daemons to finish")
-                Thread.sleep(waitForMs)
-            }
+        gradleHome?.let {
+            systemProperty("gradle.for.tests.user.home", it.canonicalPath)
         }
-
 
         val mavenLocalRepo = System.getProperty("maven.repo.local")
         if (mavenLocalRepo != null) {

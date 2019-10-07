@@ -172,7 +172,7 @@ if (!project.hasProperty("versions.kotlin-native")) {
     extra["versions.kotlin-native"] = "1.3.60-dev-12485"
 }
 
-val isTeamcityBuild by extra(project.kotlinBuildProperties.isTeamcityBuild)
+val isTeamcityBuild = project.kotlinBuildProperties.isTeamcityBuild
 val intellijUltimateEnabled by extra(project.kotlinBuildProperties.intellijUltimateEnabled)
 val effectSystemEnabled by extra(project.getBooleanProperty("kotlin.compiler.effectSystemEnabled") ?: false)
 val newInferenceEnabled by extra(project.getBooleanProperty("kotlin.compiler.newInferenceEnabled") ?: false)

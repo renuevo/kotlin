@@ -99,7 +99,25 @@ abstract class BaseGradleIT {
         private const val MAX_DAEMON_RUNS = 30
         private const val MAX_ACTIVE_GRADLE_PROCESSES = 1
 
+        private fun getEnvJDK_18() = System.getenv()["JDK_18"]
+
         val resourcesRootFile = File("libraries/tools/kotlin-gradle-plugin-integration-tests/src/test/resources")
+
+        @AfterClass
+        @JvmStatic
+        @Synchronized
+        @Suppress("unused")
+        fun tearDownAll() {
+            // Latest gradle requires Java > 7
+            val environmentVariables = hashMapOf<String, String>()
+            getEnvJDK_18()?.let { environmentVariables["JAVA_HOME"] = it }
+            stopAllDaemons(environmentVariables)
+
+            gradleWrappers.values.forEach { wrapperDir ->
+                wrapperDir.deleteRecursively()
+            }
+            gradleWrappers.clear()
+        }
 
         @Synchronized
         fun prepareWrapper(
@@ -117,14 +135,8 @@ abstract class BaseGradleIT {
                     stopAllDaemons(environmentVariables)
                 }
 
-
                 if (DaemonRegistry.runCountForDaemon(version) >= MAX_DAEMON_RUNS) {
-                    // prior to 5.0 gradle was leaking unused classloaders
-                    // https://github.com/gradle/gradle/commit/b483d29f315758913791fe58d572fa6bafa0395c
-                    // restart test daemon periodically to prevent OOM
-                    if (GradleVersion.version(version) < GradleVersion.version("5.0")) {
-                        stopDaemon(version, environmentVariables)
-                    }
+                    stopDaemon(version, environmentVariables)
                 }
 
                 // we could've stopped daemon
@@ -688,9 +700,6 @@ Finished executing task ':$taskName'|
     private fun prettyPrintXml(uglyXml: String): String =
             XMLOutputter(Format.getPrettyFormat()).outputString(SAXBuilder().build(uglyXml.reader()))
 
-    /**
-     * @see [GRADLE_HOME_FOR_TESTS] for system parameters (such as -Xmx, -ea, etc.) set trough gradle.properties in Gradle home
-     */
     private fun Project.createGradleTailParameters(options: BuildOptions, params: Array<out String> = arrayOf()): List<String> =
         params.toMutableList().apply {
             add("--stacktrace")
