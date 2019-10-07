@@ -8,7 +8,7 @@ package org.jetbrains.kotlin.gradle.util
 import java.io.File
 
 val GRADLE_HOME_FOR_TESTS =
-    File(notNullSystemProperty("gradle.home.for.tests")).apply {
+    File(notNullSystemProperty("gradle.for.tests.user.home")).apply {
         prepareTemporaryUserHome()
     }
 
@@ -22,7 +22,6 @@ private fun File.prepareTemporaryUserHome() {
 
     gradleProperties.bufferedWriter().use { p ->
         p.appendln("org.gradle.jvm=-Xmx1024m -ea")
-        // 30 seconds
-        p.appendln("org.gradle.daemon.idletimeout=30000")
+        p.appendln("org.gradle.daemon.idletimeout=${notNullSystemProperty("gradle.for.tests.idle.timeout")}")
     }
 }
