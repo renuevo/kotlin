@@ -488,7 +488,12 @@ tasks {
     }
 
     register("gradlePluginIntegrationTest") {
-        dependsOn(":kotlin-gradle-plugin-integration-tests:check")
+        if (isTeamcityBuild) {
+            dependsOn(":kotlin-gradle-plugin-integration-tests:generated:min-gradle:check")
+            dependsOn(":kotlin-gradle-plugin-integration-tests:generated:max-gradle:check")
+        } else {
+            dependsOn(":kotlin-gradle-plugin-integration-tests:check")
+        }
     }
 
     register("jvmCompilerTest") {
