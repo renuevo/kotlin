@@ -117,8 +117,14 @@ abstract class BaseGradleIT {
                     stopAllDaemons(environmentVariables)
                 }
 
+
                 if (DaemonRegistry.runCountForDaemon(version) >= MAX_DAEMON_RUNS) {
-                    stopDaemon(version, environmentVariables)
+                    // prior to 5.0 gradle was leaking unused classloaders
+                    // https://github.com/gradle/gradle/commit/b483d29f315758913791fe58d572fa6bafa0395c
+                    // restart test daemon periodically to prevent OOM
+                    if (GradleVersion.version(version) < GradleVersion.version("5.0")) {
+                        stopDaemon(version, environmentVariables)
+                    }
                 }
 
                 // we could've stopped daemon
