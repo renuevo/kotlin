@@ -12,6 +12,7 @@ import org.jdom.output.XMLOutputter
 import org.jetbrains.kotlin.gradle.model.ModelContainer
 import org.jetbrains.kotlin.gradle.model.ModelFetcherBuildAction
 import org.jetbrains.kotlin.gradle.util.*
+import org.jetbrains.kotlin.kapt3.base.util.measureTimeMillisWithResult
 import org.jetbrains.kotlin.test.util.trimTrailingWhitespaces
 import org.junit.After
 import org.junit.AfterClass
@@ -316,7 +317,11 @@ abstract class BaseGradleIT {
             setupWorkingDir()
         }
 
-        val result = runProcess(cmd, projectDir, env, options)
+        val (timeMs, result) = measureTimeMillisWithResult {
+            runProcess(cmd, projectDir, env, options)
+        }
+        println("<=== Finished in ${timeMs / 1000} s  ===>")
+
         try {
             CompiledProject(this, result.output, result.exitCode).check()
         } catch (t: Throwable) {
