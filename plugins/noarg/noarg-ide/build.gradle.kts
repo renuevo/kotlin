@@ -20,6 +20,7 @@ dependencies {
     compileOnly(intellijDep())
     excludeInAndroidStudio(rootProject) { compileOnly(intellijPluginDep("maven")) }
     compileOnly(intellijPluginDep("gradle"))
+    compileOnly(intellijCoreDep()) { includeJars("intellij-core") }
 
     testCompileOnly(project(":kotlin-serialization"))
     testCompileOnly(project(":plugins:lint"))
