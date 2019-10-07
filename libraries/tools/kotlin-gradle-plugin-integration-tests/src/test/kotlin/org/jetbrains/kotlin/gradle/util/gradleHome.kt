@@ -21,7 +21,7 @@ private fun File.prepareTemporaryUserHome() {
     gradleProperties.delete()
 
     gradleProperties.bufferedWriter().use { p ->
-        p.appendln("org.gradle.jvm=-Xmx1024m -ea -XX:MaxMetaspaceSize=512m")
+        p.appendln("org.gradle.jvm=-Xmx1024m -ea -XX:MaxMetaspaceSize=1024m")
         p.appendln("org.gradle.daemon.idletimeout=${notNullSystemProperty("gradle.for.tests.idle.timeout")}")
     }
 }
