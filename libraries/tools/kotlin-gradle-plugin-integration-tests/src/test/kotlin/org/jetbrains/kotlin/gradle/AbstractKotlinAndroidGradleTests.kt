@@ -13,7 +13,7 @@ open class KotlinAndroid33GradleIT : KotlinAndroid32GradleIT() {
         get() = AGPVersion.v3_3_2
 
     override val defaultGradleVersion: GradleVersionRequired
-        get() = GradleVersionRequired.AtLeast("5.0")
+        get() = GradleVersionRequired.AtLeast("5.1")
 }
 
 open class KotlinAndroid32GradleIT : KotlinAndroid3GradleIT() {
