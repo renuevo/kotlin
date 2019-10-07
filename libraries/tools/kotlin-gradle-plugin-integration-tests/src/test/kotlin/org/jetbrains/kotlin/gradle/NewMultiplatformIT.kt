@@ -203,10 +203,6 @@ open class NewMultiplatformIT : BaseGradleIT() {
             gradleBuildScript(libProjectName).takeIf { it.extension == "kts" }?.modify {
                 it.replace(Regex("""\.version\(.*\)"""), "")
             }
-
-            build("clean", "assemble", "--rerun-tasks") {
-                checkAppBuild()
-            }
         }
 
         with(oldStyleAppProject) {
