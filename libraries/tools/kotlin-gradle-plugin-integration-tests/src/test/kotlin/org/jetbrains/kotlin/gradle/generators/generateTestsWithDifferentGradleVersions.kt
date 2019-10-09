@@ -5,60 +5,97 @@
 
 package org.jetbrains.kotlin.gradle.generators
 
-import org.jetbrains.kotlin.gradle.*
-import org.jetbrains.kotlin.gradle.model.*
+import org.jetbrains.kotlin.incremental.isClassFile
+import org.jetbrains.org.objectweb.asm.*
 import java.io.File
-import kotlin.reflect.KClass
+import java.util.*
+import kotlin.collections.HashSet
+import kotlin.collections.LinkedHashSet
 
-fun main() {
-    // todo use ASM instead of reflection
-    generateTests {
-        test<AllOpenModelIT>()
-        test<BuildCacheIT>()
-        test<BuildCacheRelocationIT>()
-        test<ClassFileIsRemovedIT>()
-        test<CocoaPodsIT>()
-        test<ConfigurationAvoidanceIT>()
-        test<CoroutinesIT>()
-        test<ExecutionStrategyJsIT>()
-        test<ExecutionStrategyJvmIT>()
-        test<GradleDaemonMemoryIT>()
-        test<HierarchicalMppIT>()
-        test<IncrementalCompilationJsMultiProjectIT>()
-        test<IncrementalCompilationJvmMultiProjectIT>()
-        test<IncrementalJavaChangeDefaultIT>()
-        test<IncrementalJavaChangeDisablePreciseIT>()
-        test<IncrementalJavaChangePreciseIT>()
-        test<JavaUpToDateIT>()
-        test<Kapt3Android31IT>()
-        test<Kapt3Android32IT>()
-        test<Kapt3Android33IT>()
-        test<Kapt3IT>()
-        test<Kapt3WorkersAndroid32IT>()
-        test<Kapt3WorkersIT>()
-        test<KaptIncrementalIT>()
-        test<KaptIncrementalWithAggregatingApt>()
-        test<KaptIncrementalWithIsolatingApt>()
-        test<KaptModelIT>()
-        test<Kotlin2JsGradlePluginIT>()
-        test<KotlinAndroid30GradleIT>()
-        test<KotlinAndroid32GradleIT>()
-        test<KotlinAndroid33GradleIT>()
-        test<KotlinAndroidExtensionIT>()
-        test<KotlinDaemonIT>()
-        test<KotlinGradleIT>()
-        test<KotlinProjectIT>()
-        test<MultiplatformGradleIT>()
-        test<NewMultiplatformIT>()
-        test<NoArgModelIT>()
-        test<PluginsDslIT>()
-        test<SamWithReceiverModelIT>()
-        test<SimpleKotlinGradleIT>()
-        test<TestRootAffectedIT>()
-        test<UpToDateIT>()
-        test<VariantAwareDependenciesIT>()
-        test<WorkersIT>()
+annotation class GradleTestsRootClass
+
+fun main(args: Array<String>) {
+    val classesDir = File(args.single())
+    val classFiles = classesDir.walk().filter { it.isClassFile() }
+
+    val subtypes = HashMap<String, MutableSet<String>>()
+    val supertype = HashMap<String, String>()
+    val classInfos = HashMap<String, ClassInfo>()
+    val rootClasses = HashSet<ClassInfo>()
+
+    for (classFile in classFiles) {
+        val reader = ClassReader(classFile.readBytes())
+        val classInfoCollector = ClassInfoCollector()
+        reader.accept(classInfoCollector, 0)
+        classInfoCollector.classInfo.let { ci ->
+            ci.superName?.let { superName ->
+                supertype[ci.name] = superName
+                subtypes.getOrPut(superName) { HashSet() }.add(ci.name)
+            }
+            if (GradleTestsRootClass::class.java.canonicalName in ci.annotations) {
+                rootClasses.add(ci)
+            }
+            classInfos[ci.name] = ci
+        }
     }
+
+    val visited = HashSet<String>()
+    val queue = ArrayDeque<ClassInfo>()
+    queue.addAll(rootClasses)
+    val concreteTestClasses = HashSet<ClassInfo>()
+    while (queue.isNotEmpty()) {
+        val classInfo = queue.pollFirst()
+        if (visited.add(classInfo.name)) {
+            if (!classInfo.isAbstract) concreteTestClasses.add(classInfo)
+
+            for (typeName in (subtypes[classInfo.name] ?: emptySet<String>())) {
+                if (typeName !in visited) {
+                    queue.add(classInfos[typeName]!!)
+                }
+            }
+        }
+    }
+
+    generateTests {
+        for (testClass in concreteTestClasses) {
+            addTestClass(testClass.name)
+        }
+    }
+}
+
+private data class ClassInfo(
+    val name: String,
+    val superName: String?,
+    private val access: Int,
+    val annotations: Set<String>
+) {
+    val isAbstract: Boolean
+        get() = (access and Opcodes.ACC_ABSTRACT) == Opcodes.ACC_ABSTRACT
+}
+
+private class ClassInfoCollector : ClassVisitor(Opcodes.API_VERSION) {
+    private var name: String? = null
+    private var superName: String? = null
+    private var access: Int? = null
+    private val annotations = HashSet<String>()
+
+    val classInfo: ClassInfo by lazy {
+        ClassInfo(name = name!!, superName = superName, access = access!!, annotations = annotations)
+    }
+
+    override fun visit(version: Int, access: Int, name: String, signature: String?, superName: String?, interfaces: Array<out String>?) {
+        this.name = name.nameToFqName()
+        this.superName = superName?.nameToFqName()
+        this.access = access
+    }
+
+    override fun visitAnnotation(descriptor: String, visible: Boolean): AnnotationVisitor? {
+        annotations.add(descriptor.descriptorToFqName())
+        return super.visitAnnotation(descriptor, visible)
+    }
+
+    private fun String.nameToFqName() = Type.getObjectType(this).className
+    private fun String.descriptorToFqName() = Type.getType(this).className
 }
 
 private fun generateTests(configureTestGen: TestsGenerator.() -> Unit) {
@@ -70,10 +107,10 @@ private fun generateTests(configureTestGen: TestsGenerator.() -> Unit) {
 }
 
 private class TestsGenerator {
-    internal val sourceTestClasses = LinkedHashSet<KClass<*>>()
+    private val sourceTestClasses = LinkedHashSet<String>()
 
-    internal inline fun <reified T : BaseGradleIT> test() {
-        sourceTestClasses.add(T::class)
+    fun addTestClass(fqName: String) {
+        sourceTestClasses.add(fqName)
     }
 
     fun generateTestsImpl(useMinVersion: Boolean) {
@@ -89,10 +126,10 @@ private class TestsGenerator {
                 appendln("package ${testType}VersionGradleTests")
 
                 for (sourceTestClass in sourceTestClasses) {
-                    val targetTestName = "${sourceTestClass.simpleName}With${testType.capitalize()}Gradle"
+                    val targetTestName = "${sourceTestClass.substringAfterLast(".")}With${testType.capitalize()}Gradle"
 
                     appendln()
-                    appendln("class $targetTestName : ${sourceTestClass.qualifiedName}() {")
+                    appendln("class $targetTestName : ${sourceTestClass}() {")
                     appendln("    override val useMinVersion = $useMinVersion")
                     appendln("}")
                 }

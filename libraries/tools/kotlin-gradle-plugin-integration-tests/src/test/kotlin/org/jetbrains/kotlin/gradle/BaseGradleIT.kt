@@ -9,6 +9,7 @@ import org.jdom.Element
 import org.jdom.input.SAXBuilder
 import org.jdom.output.Format
 import org.jdom.output.XMLOutputter
+import org.jetbrains.kotlin.gradle.generators.GradleTestsRootClass
 import org.jetbrains.kotlin.gradle.model.ModelContainer
 import org.jetbrains.kotlin.gradle.model.ModelFetcherBuildAction
 import org.jetbrains.kotlin.gradle.util.*
@@ -24,6 +25,7 @@ import kotlin.test.*
 
 val SYSTEM_LINE_SEPARATOR: String = System.getProperty("line.separator")
 
+@GradleTestsRootClass
 abstract class BaseGradleIT {
 
     protected var workingDir = File(".")

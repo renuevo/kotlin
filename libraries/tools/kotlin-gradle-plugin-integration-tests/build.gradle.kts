@@ -41,6 +41,9 @@ dependencies {
     // Workaround for missing transitive import of the common(project `kotlin-test-common`
     // for `kotlin-test-jvm` into the IDE:
     testCompileOnly(project(":kotlin-test:kotlin-test-common")) { isTransitive = false }
+
+    // only for test generator
+    testImplementation(intellijDep()) { includeJars("asm-all", rootProject = rootProject) }
 }
 
 gradle.taskGraph.whenReady {
@@ -70,7 +73,9 @@ configureCommonTasks()
 
 testsJar {}
 
+// todo use allopen
 val generateTests by generator("org.jetbrains.kotlin.gradle.generators.GenerateTestsWithDifferentGradleVersionsKt")
+generateTests.setArgsString(project.file("build/classes").canonicalPath)
 
 configureGeneratedTestsSubProject("generated:max-gradle", "max-ver")
 configureGeneratedTestsSubProject("generated:min-gradle", "min-ver")
