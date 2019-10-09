@@ -389,3 +389,6 @@ fun KotlinType.tryResolveMarkerInterfaceFQName(): String? {
 
     return null
 }
+
+internal fun <L : Any, T> L.invalidAccess(): T =
+    error("Cls delegate shouldn't be loaded for not too complex ultra-light classes! Qualified name: ${this.javaClass.name}")
