@@ -5,15 +5,29 @@
 
 package org.jetbrains.kotlin.gradle.dsl
 
+import com.android.build.gradle.*
+import com.android.build.gradle.api.BaseVariant
+import com.android.build.gradle.internal.LoggerWrapper
+import com.android.build.gradle.internal.SdkLocationSourceSet
+import com.android.build.gradle.internal.SdkLocator
+import com.android.builder.model.AndroidProject
+import com.android.sdklib.IAndroidTarget
+import com.android.sdklib.repository.AndroidSdkHandler
+import com.android.sdklib.repository.LoggerProgressIndicatorWrapper
+import com.android.tools.lint.gradle.api.ToolingRegistryProvider
 import groovy.lang.Closure
 import org.gradle.api.InvalidUserCodeException
 import org.gradle.api.NamedDomainObjectCollection
+import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
+import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
 import org.gradle.util.ConfigureUtil
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinTargetPreset
 import org.jetbrains.kotlin.gradle.plugin.KotlinTargetsContainerWithPresets
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.jetbrains.kotlin.gradle.utils.isGradleVersionAtLeast
+import java.io.File
 
 open class KotlinMultiplatformExtension : KotlinProjectExtension(), KotlinTargetContainerWithPresetFunctions {
     override lateinit var presets: NamedDomainObjectCollection<KotlinTargetPreset<*>>
@@ -51,6 +65,84 @@ open class KotlinMultiplatformExtension : KotlinProjectExtension(), KotlinTarget
             KotlinSoftwareComponent("kotlin", targets)
         }
     }
+
+    fun forEachVariant(project: Project, action: (BaseVariant) -> Unit) {
+        val logger = LoggerWrapper(project.logger)
+        val androidExtension = project.extensions.findByName("android") as BaseExtension? ?: return
+//        val sdkInfo = SdkHandler(project, logger).sdkInfo
+        when (androidExtension) {
+            is AppExtension -> androidExtension.applicationVariants.all(action)
+            is LibraryExtension -> {
+                androidExtension.libraryVariants.all(action)
+                if (androidExtension is FeatureExtension) {
+                    androidExtension.featureVariants.all(action)
+                }
+            }
+            is TestExtension -> androidExtension.applicationVariants.all(action)
+        }
+        if (androidExtension is TestedExtension) {
+            androidExtension.testVariants.all(action)
+            androidExtension.unitTestVariants.all(action)
+        }
+    }
+
+    fun getAndroidSdkJar(project: Project): String? {
+        val androidExtension = project.extensions.findByName("android") as BaseExtension? ?: return null
+        val sdkLocation = SdkLocator.getSdkLocation(SdkLocationSourceSet(project.rootDir)).directory ?: return null
+        val sdkHandler = AndroidSdkHandler.getInstance(sdkLocation)
+        val logger = LoggerProgressIndicatorWrapper(LoggerWrapper(project.logger))
+        val androidTarget = sdkHandler.getAndroidTargetManager(logger).getTargetFromHashString(androidExtension.compileSdkVersion, logger)
+        return androidTarget.getPath(IAndroidTarget.ANDROID_JAR)
+    }
+
+    fun getAndroidConfigurations(project: Project): List<Configuration> {
+        val configurations = ArrayList<Configuration>()
+        forEachVariant(project) {
+            configurations.add(it.compileConfiguration)
+        }
+        val ext = project.extensions.getByName("android") as BaseExtension
+
+        val ssets = ext.sourceSets
+
+        return configurations
+    }
+
+    private fun createAndroidProject(
+        gradleProject: org.gradle.api.Project
+    ): AndroidProject? {
+        val pluginContainer = gradleProject.plugins
+        for (p in pluginContainer) {
+            if (p is ToolingRegistryProvider) {
+                val registry: ToolingModelBuilderRegistry = (p as ToolingRegistryProvider).modelBuilderRegistry
+                val modelName = AndroidProject::class.java.name
+                val builder = registry.getBuilder(modelName)
+                assert(builder.canBuild(modelName)) { modelName }
+
+                val ext = gradleProject.extensions.extraProperties
+
+                ext.set(
+                    AndroidProject.PROPERTY_BUILD_MODEL_ONLY_VERSIONED,
+                    AndroidProject.MODEL_LEVEL_3_VARIANT_OUTPUT_POST_BUILD.toString()
+                )
+
+                try {
+                    return builder.buildAll(modelName, gradleProject) as AndroidProject
+                } finally {
+                    ext.set(AndroidProject.PROPERTY_BUILD_MODEL_ONLY_VERSIONED, null)
+                }
+            }
+        }
+
+        return null
+    }
+
+    fun getDepGraph(project: org.gradle.api.Project): List<File>? {
+        val androidProject = createAndroidProject(project) ?: return null
+        val mainArtifact = androidProject.variants.iterator().next().mainArtifact
+        val dependencies = mainArtifact.dependencies
+        return dependencies.libraries.map { it.jarFile } + dependencies.javaLibraries.map { it.jarFile }
+    }
+
 }
 
 internal fun KotlinTarget.isProducedFromPreset(kotlinTargetPreset: KotlinTargetPreset<*>): Boolean =

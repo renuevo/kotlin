@@ -5,7 +5,10 @@
 
 package org.jetbrains.kotlin.gradle
 
-import org.gradle.api.*
+import org.gradle.api.Named
+import org.gradle.api.NamedDomainObjectContainer
+import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
@@ -110,6 +113,9 @@ class KotlinMPPGradleModelBuilder : ModelBuilderService {
         val sourceSets =
             (getSourceSets(kotlinExt) as? NamedDomainObjectContainer<Named>)?.asMap?.values ?: emptyList<Named>()
         val allSourceSets = sourceSets.mapNotNull { buildSourceSet(it, dependencyResolver, project, dependencyMapper) }
+        val getConfigurations = kotlinExt.javaClass.getMethodOrNull("getAndroidConfigurations", Project::class.java)
+        val configurations = getConfigurations?.let { it(kotlinExt, project) } as List<Configuration>
+
         val map = allSourceSets.map { it.name to it }.toMap()
         val dependsOnCache = HashMap<String, Set<String>>()
         return allSourceSets.map { sourceSet ->
@@ -469,6 +475,13 @@ class KotlinMPPGradleModelBuilder : ModelBuilderService {
         dependencyResolver: DependencyResolver,
         project: Project
     ): List<KotlinDependency> {
+        val kotlinExt = project.extensions.findByName("kotlin")
+        val getConfigurations = kotlinExt?.javaClass?.getMethodOrNull("getAndroidConfigurations", Project::class.java)
+        val getBuildGraphs = kotlinExt?.javaClass?.getMethodOrNull("getDepGraph", Project::class.java)
+        val getAndroidSdkJar = kotlinExt?.javaClass?.getMethodOrNull("getAndroidSdkJar", Project::class.java)
+        val sdkJar = getAndroidSdkJar?.let { it(kotlinExt, project) } as String?
+        val androidDeps = getBuildGraphs?.invoke(kotlinExt, project) as List<File>?
+
         return ArrayList<KotlinDependency>().apply {
             val transformationBuilder = MetadataDependencyTransformationBuilder(gradleSourceSet)
             this += buildDependencies(
@@ -483,6 +496,16 @@ class KotlinMPPGradleModelBuilder : ModelBuilderService {
             this += buildDependencies(
                 gradleSourceSet, dependencyResolver, "getRuntimeOnlyMetadataConfigurationName", "RUNTIME", project, transformationBuilder
             )
+            if (gradleSourceSet.name.startsWith("androidDebug")) { //TODO find proper way to determine the platform
+                val configurations = getConfigurations?.let { it(kotlinExt, project) } as List<Configuration>
+                val p = (dependencyResolver as DependencyResolverImpl).resolveDependencies(configurations.first(), null)
+                @Suppress("UNCHECKED_CAST")
+                val files_broken_aar = p.resolvedFiles.toMutableList()
+
+                val files = androidDeps!!.toMutableList()
+                sdkJar?.let { files += File(it) }
+                this += DefaultFileCollectionDependency(files)
+            }
         }
     }
 
