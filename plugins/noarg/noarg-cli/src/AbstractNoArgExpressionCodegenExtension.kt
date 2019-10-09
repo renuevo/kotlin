@@ -30,7 +30,8 @@ class CliNoArgExpressionCodegenExtension(private val annotations: List<String>, 
     override fun getAnnotationFqNames(modifierListOwner: KtModifierListOwner?): List<String> = annotations
 }
 
-abstract class AbstractNoArgExpressionCodegenExtension(val invokeInitializers: Boolean) : ExpressionCodegenExtension, AnnotationBasedExtension {
+abstract class AbstractNoArgExpressionCodegenExtension(val invokeInitializers: Boolean) : ExpressionCodegenExtension,
+    AnnotationBasedExtension {
 
     override fun generateClassSyntheticParts(codegen: ImplementationBodyCodegen) = with(codegen) {
         if (shouldGenerateNoArgConstructor()) {
@@ -72,15 +73,6 @@ abstract class AbstractNoArgExpressionCodegenExtension(val invokeInitializers: B
         })
     }
 
-    protected fun createNoArgConstructorDescriptor(containingClass: ClassDescriptor): ConstructorDescriptor {
-        return ClassConstructorDescriptorImpl.createSynthesized(containingClass, Annotations.EMPTY, false, SourceElement.NO_SOURCE).apply {
-            initialize(
-                null, calculateDispatchReceiverParameter(), emptyList(), emptyList(),
-                containingClass.builtIns.unitType, Modality.OPEN, Visibilities.PUBLIC
-            )
-        }
-    }
-
     private fun ImplementationBodyCodegen.shouldGenerateNoArgConstructor(): Boolean {
         val origin = myClass as? KtClass ?: return false
 
@@ -98,4 +90,19 @@ abstract class AbstractNoArgExpressionCodegenExtension(val invokeInitializers: B
     }
 
     override val shouldGenerateClassSyntheticPartsInLightClassesMode = true
+
+    companion object {
+        fun createNoArgConstructorDescriptor(containingClass: ClassDescriptor): ConstructorDescriptor =
+            ClassConstructorDescriptorImpl.createSynthesized(containingClass, Annotations.EMPTY, false, SourceElement.NO_SOURCE).apply {
+                initialize(
+                    null,
+                    calculateDispatchReceiverParameter(),
+                    emptyList(),
+                    emptyList(),
+                    containingClass.builtIns.unitType,
+                    Modality.OPEN,
+                    Visibilities.PUBLIC
+                )
+            }
+    }
 }
