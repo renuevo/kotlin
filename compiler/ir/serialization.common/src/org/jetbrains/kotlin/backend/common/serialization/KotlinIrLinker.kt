@@ -433,7 +433,7 @@ abstract class KotlinIrLinker(
                 }
             }
 
-            forceLoadedIds.forEach { moduleDeserializationState.addUniqID(it.uniqId().also { i -> assert(i.isPublic) }) }
+            forceLoadedIds.forEach { fileDeserializer.fileLocalDeserializationState.addUniqID(it.uniqId()) }
 
             return file
         }
