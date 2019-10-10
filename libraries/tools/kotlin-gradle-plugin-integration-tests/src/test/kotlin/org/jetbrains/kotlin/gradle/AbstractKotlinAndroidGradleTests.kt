@@ -760,7 +760,7 @@ fun getSomething() = 10
                 """.trimIndent()
         )
 
-        build("build") {
+        build("assembleDebug", "assembleAndroidTest", "testClasses", "compileDebugUnitTestJavaWithJavac") {
             assertSuccessful()
             assertTasksExecuted(
                 ":lib:compileKotlinCommon",
@@ -768,9 +768,7 @@ fun getSomething() = 10
                 ":libJvm:compileKotlin",
                 ":libJvm:compileTestKotlin",
                 ":libAndroid:compileDebugKotlin",
-                ":libAndroid:compileReleaseKotlin",
-                ":libAndroid:compileDebugUnitTestKotlin",
-                ":libAndroid:compileReleaseUnitTestKotlin"
+                ":libAndroid:compileDebugUnitTestKotlin"
             )
 
             assertFileExists("lib/build/classes/kotlin/main/foo/PlatformClass.kotlin_metadata")
@@ -779,7 +777,6 @@ fun getSomething() = 10
             assertFileExists("libJvm/build/classes/kotlin/test/foo/PlatformTest.class")
 
             assertFileExists("libAndroid/build/tmp/kotlin-classes/debug/foo/PlatformClass.class")
-            assertFileExists("libAndroid/build/tmp/kotlin-classes/release/foo/PlatformClass.class")
             assertFileExists("libAndroid/build/tmp/kotlin-classes/debugUnitTest/foo/PlatformTest.class")
             assertFileExists("libAndroid/build/tmp/kotlin-classes/debugUnitTest/foo/PlatformTest.class")
         }
