@@ -2,6 +2,7 @@ package org.jetbrains.kotlin.gradle.util
 
 import java.io.File
 import java.nio.file.Files
+import java.util.*
 
 fun File.getFileByName(name: String): File =
     findFileByName(name) ?: throw AssertionError("Could not find file with name '$name' in $this")
@@ -67,6 +68,15 @@ fun normalizePath(path: String): String {
     }
 
     return path
+}
+
+fun withProperties(file: File, fn: (Properties) -> Unit) {
+    val p = Properties()
+    if (file.exists()) {
+        file.bufferedReader().use { p.load(it) }
+    }
+    fn(p)
+    file.bufferedWriter().use { p.store(it, null) }
 }
 
 private fun normalizeTail(prefixEnd: Int, path: String, separator: Boolean): String {

@@ -7,20 +7,7 @@ package org.jetbrains.kotlin.gradle.util
 
 import java.io.File
 
-val GRADLE_HOME_FOR_TESTS =
-    File(notNullSystemProperty("gradle.for.tests.user.home")).apply {
-        prepareTemporaryUserHome()
-    }
+val GRADLE_HOME_FOR_TESTS = File(notNullSystemProperty("gradle.for.tests.user.home"))
 
 private fun notNullSystemProperty(prop: String): String =
     System.getProperty(prop) ?: error("System property '$prop' is not set")
-
-private fun File.prepareTemporaryUserHome() {
-    mkdirs()
-    val gradleProperties = resolve("gradle.properties")
-    gradleProperties.delete()
-
-    gradleProperties.bufferedWriter().use { p ->
-        p.appendln("org.gradle.jvm=-Xmx1024m -ea -XX:MaxMetaspaceSize=1024m")
-    }
-}

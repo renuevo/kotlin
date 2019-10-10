@@ -21,9 +21,11 @@ import org.junit.Assert
 import org.junit.Before
 import java.io.File
 import java.util.regex.Pattern
+import kotlin.collections.HashSet
 import kotlin.test.*
 
 val SYSTEM_LINE_SEPARATOR: String = System.getProperty("line.separator")
+const val TEST_GRADLE_JVM_ARGS = "-Xmx1024m -XX:MaxMetaspaceSize=512m"
 
 @GradleTestsRootClass
 abstract class BaseGradleIT {
@@ -232,8 +234,12 @@ abstract class BaseGradleIT {
         val projectDir = File(workingDir.canonicalFile, projectName)
 
         open fun setupWorkingDir() {
-            if (!projectDir.isDirectory || projectDir.listFiles().isEmpty())
-                copyRecursively(this.resourcesRoot, workingDir)
+            if (projectDir.isDirectory && projectDir.listFiles().isNotEmpty()) return
+
+            copyRecursively(this.resourcesRoot, workingDir)
+            withProperties(projectDir.resolve("gradle.properties")) { gradleProperties ->
+                gradleProperties["org.gradle.jvmargs"] = TEST_GRADLE_JVM_ARGS
+            }
         }
 
         fun relativize(files: Iterable<File>): List<String> =
