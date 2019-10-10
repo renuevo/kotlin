@@ -186,6 +186,11 @@ public class KotlinEvaluateExpressionTestGenerated extends AbstractKotlinEvaluat
             runTest("idea/jvm-debugger/jvm-debugger-test/testData/evaluation/singleBreakpoint/funFromSuperClass.kt");
         }
 
+        @TestMetadata("functionDeclaration.kt")
+        public void testFunctionDeclaration() throws Exception {
+            runTest("idea/jvm-debugger/jvm-debugger-test/testData/evaluation/singleBreakpoint/functionDeclaration.kt");
+        }
+
         @TestMetadata("genericCrossinlineArgument.kt")
         public void testGenericCrossinlineArgument() throws Exception {
             runTest("idea/jvm-debugger/jvm-debugger-test/testData/evaluation/singleBreakpoint/genericCrossinlineArgument.kt");
@@ -399,6 +404,11 @@ public class KotlinEvaluateExpressionTestGenerated extends AbstractKotlinEvaluat
         @TestMetadata("simple.kt")
         public void testSimple() throws Exception {
             runTest("idea/jvm-debugger/jvm-debugger-test/testData/evaluation/singleBreakpoint/simple.kt");
+        }
+
+        @TestMetadata("statements.kt")
+        public void testStatements() throws Exception {
+            runTest("idea/jvm-debugger/jvm-debugger-test/testData/evaluation/singleBreakpoint/statements.kt");
         }
 
         @TestMetadata("staticField.kt")
