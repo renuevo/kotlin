@@ -13,7 +13,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class SubpluginsIT : BaseGradleIT() {
+open class SubpluginsIT : BaseGradleIT() {
     @Test
     fun testGradleSubplugin() {
         val project = Project("kotlinGradleSubplugin")
