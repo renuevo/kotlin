@@ -587,14 +587,11 @@ open class KotlinGradleIT : BaseGradleIT() {
 
     @Test
     fun testNoUnnamedInputsOutputs() {
-        // Use a new Gradle version to enable the usage of the input/output builders, which are new API:
-        val gradleVersionRequirement = GradleVersionRequired.AtLeast("4.4")
-
         val projects = listOf(
-            Project("simpleProject", gradleVersionRequirement),
-            Project("kotlin2JsProject", gradleVersionRequirement),
-            Project("multiplatformProject", gradleVersionRequirement),
-            Project("simple", gradleVersionRequirement, "kapt2")
+            Project("simpleProject"),
+            Project("kotlin2JsProject"),
+            Project("multiplatformProject"),
+            Project("simple", directoryPrefix = "kapt2")
         )
 
         projects.forEach {
