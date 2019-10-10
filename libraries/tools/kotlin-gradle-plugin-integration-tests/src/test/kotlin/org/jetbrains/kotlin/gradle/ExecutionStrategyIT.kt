@@ -103,8 +103,8 @@ abstract class ExecutionStrategyIT : BaseGradleIT() {
         }
 
         if (isGradleAtLeast50) {
-            // 256m is the default value for Gradle 5.0+
-            assertDaemonArgsContain("-XX:MaxMetaspaceSize=256m")
+            /** see [TEST_GRADLE_JVM_ARGS] */
+            assertDaemonArgsContain("-XX:MaxMetaspaceSize=512m")
         }
 
         assertDaemonArgsContain("-ea")
