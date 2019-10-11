@@ -266,8 +266,8 @@ open class OverloadingConflictResolver<C : Any>(
      * `false` otherwise.
      */
     private fun compareCallsByUsedArguments(
-        call1: FlatSignature<C>,
-        call2: FlatSignature<C>,
+        call1: FlatSignature<*>,
+        call2: FlatSignature<*>,
         discriminateGenerics: Boolean
     ): Boolean {
         if (discriminateGenerics) {
@@ -387,36 +387,16 @@ open class OverloadingConflictResolver<C : Any>(
 
     /**
      * Returns `true` if `f` is definitely not less specific than `g`,
-     * `false` if `f` is definitely less specific than `g`,
-     * `null` if undecided.
+     * `false` if `f` is definitely less specific than `g`.
      */
-    private fun isNotLessSpecificCallableReferenceDescriptor(f: CallableDescriptor, g: CallableDescriptor): Boolean {
-        if (f.valueParameters.size != g.valueParameters.size) return false
-        if (f.varargParameterPosition() != g.varargParameterPosition()) return false
-
-        val fSignature = FlatSignature.createFromCallableDescriptor(f)
-        val gSignature = FlatSignature.createFromCallableDescriptor(g)
-        if (!createEmptyConstraintSystem().isSignatureNotLessSpecific(
-                fSignature,
-                gSignature,
-                SpecificityComparisonWithNumerics,
-                specificityComparator
-            )
-        ) {
-            return false
-        }
-
-        if (f is CallableMemberDescriptor && g is CallableMemberDescriptor) {
-            if (!f.isExpect && g.isExpect) return true
-            if (f.isExpect && !g.isExpect) return false
-        }
-
-        return true
-    }
-
     private fun isNotLessSpecificCallableReference(f: CallableDescriptor, g: CallableDescriptor): Boolean =
-    // TODO should we "discriminate generic descriptors" for callable references?
-        tryCompareDescriptorsFromScripts(f, g) ?: isNotLessSpecificCallableReferenceDescriptor(f, g)
+        // TODO should we "discriminate generic descriptors" for callable references?
+        tryCompareDescriptorsFromScripts(f, g)
+            ?: compareCallsByUsedArguments(
+                FlatSignature.createFromCallableDescriptor(f),
+                FlatSignature.createFromCallableDescriptor(g),
+                discriminateGenerics = false
+            )
 
     // Different smart casts may lead to the same candidate descriptor wrapped into different ResolvedCallImpl objects
     private fun uniquifyCandidatesSet(candidates: Collection<C>): Set<C> =

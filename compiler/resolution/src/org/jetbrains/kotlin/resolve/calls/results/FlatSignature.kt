@@ -62,7 +62,7 @@ class FlatSignature<out T> constructor(
             return FlatSignature(
                 origin,
                 descriptor.typeParameters,
-                reflectionType.arguments.map { it.type }, // should we drop return type?
+                reflectionType.arguments.map { it.type }.dropLast(1), // drop return type
                 hasExtensionReceiver = false,
                 hasVarargs = descriptor.valueParameters.any { it.varargElementType != null },
                 numDefaults = numDefaults,
