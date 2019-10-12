@@ -5,7 +5,6 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 22
-    buildToolsVersion "25.0.2"
 
     sourceSets {
         main.java.srcDirs += 'src/main/java2'
