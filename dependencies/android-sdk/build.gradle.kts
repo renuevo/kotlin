@@ -87,6 +87,8 @@ unzipSdkTask("tools", "r24.3.4", "", toolsOs)
 unzipSdkTask("build-tools", "r23.0.1", "build-tools/23.0.1", toolsOs, buildTools, 1)
 unzipSdkTask("build-tools", "r28.0.2", "build-tools/28.0.2", toolsOs, buildTools, 1)
 
+// for gradle plugin tests
+unzipSdkTask("build-tools", "r26.0.2", "build-tools/26.0.2", toolsOs, buildTools, 1)
 
 val clean by task<Delete> {
     delete(buildDir)
