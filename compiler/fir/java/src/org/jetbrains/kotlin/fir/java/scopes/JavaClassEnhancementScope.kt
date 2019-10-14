@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.fir.java.enhancement.*
 import org.jetbrains.kotlin.fir.java.toNotNullConeKotlinType
 import org.jetbrains.kotlin.fir.java.types.FirJavaTypeRef
 import org.jetbrains.kotlin.fir.render
+import org.jetbrains.kotlin.fir.resolve.firSymbolProvider
 import org.jetbrains.kotlin.fir.scopes.FirScope
 import org.jetbrains.kotlin.fir.scopes.ProcessorAction
 import org.jetbrains.kotlin.fir.symbols.CallableId
@@ -80,7 +81,9 @@ class JavaClassEnhancementScope(
             is FirJavaField -> {
                 if (firElement.returnTypeRef !is FirJavaTypeRef) return original
                 val memberContext = context.copyWithNewDefaultTypeQualifiers(typeQualifierResolver, jsr305State, firElement.annotations)
-                val newReturnTypeRef = enhanceReturnType(firElement, emptyList(), memberContext, null)
+                val newReturnTypeRef = enhanceReturnType(
+                    firElement, emptyList(), memberContext, null, javaTypeParameterStack
+                )
 
                 val symbol = FirFieldSymbol(original.callableId)
                 with(firElement) {
@@ -133,6 +136,9 @@ class JavaClassEnhancementScope(
         isAccessor: Boolean = false,
         propertyId: CallableId? = null
     ): FirFunctionSymbol<*> {
+        val classId = firMethod.symbol.callableId.classId
+        val classSymbol = classId?.let { session.firSymbolProvider.getClassLikeSymbolByFqName(it) }
+        val javaTypeParameterStack = (classSymbol?.fir as? FirJavaClass)?.javaTypeParameterStack ?: this.javaTypeParameterStack
         val memberContext = context.copyWithNewDefaultTypeQualifiers(typeQualifierResolver, jsr305State, firMethod.annotations)
 
         val predefinedEnhancementInfo =
@@ -150,12 +156,12 @@ class JavaClassEnhancementScope(
         val hasReceiver = overriddenMembers.any { it.receiverTypeRef != null }
 
         val newReceiverTypeRef = if (firMethod is FirJavaMethod && hasReceiver) {
-            enhanceReceiverType(firMethod, overriddenMembers, memberContext)
+            enhanceReceiverType(firMethod, overriddenMembers, memberContext, javaTypeParameterStack)
         } else null
         val newReturnTypeRef = if (firMethod is FirJavaConstructor) {
             firMethod.returnTypeRef
         } else {
-            enhanceReturnType(firMethod, overriddenMembers, memberContext, predefinedEnhancementInfo)
+            enhanceReturnType(firMethod, overriddenMembers, memberContext, predefinedEnhancementInfo, javaTypeParameterStack)
         }
 
         val newValueParameterInfo = mutableListOf<EnhanceValueParameterResult>()
@@ -165,7 +171,7 @@ class JavaClassEnhancementScope(
             newValueParameterInfo += enhanceValueParameter(
                 firMethod, overriddenMembers, hasReceiver,
                 memberContext, predefinedEnhancementInfo, valueParameter as FirJavaValueParameter,
-                if (hasReceiver) index - 1 else index
+                if (hasReceiver) index - 1 else index, javaTypeParameterStack
             )
         }
 
@@ -285,7 +291,8 @@ class JavaClassEnhancementScope(
     private fun enhanceReceiverType(
         ownerFunction: FirJavaMethod,
         overriddenMembers: List<FirCallableMemberDeclaration<*>>,
-        memberContext: FirJavaEnhancementContext
+        memberContext: FirJavaEnhancementContext,
+        javaTypeParameterStack: JavaTypeParameterStack
     ): FirResolvedTypeRef {
         val signatureParts = ownerFunction.partsForValueParameter(
             typeQualifierResolver,
@@ -293,7 +300,8 @@ class JavaClassEnhancementScope(
             // TODO: check me
             parameterContainer = ownerFunction,
             methodContext = memberContext,
-            typeInSignature = TypeInSignature.Receiver
+            typeInSignature = TypeInSignature.Receiver,
+            javaTypeParameterStack = javaTypeParameterStack
         ).enhance(session, jsr305State)
         return signatureParts.type
     }
@@ -307,14 +315,16 @@ class JavaClassEnhancementScope(
         memberContext: FirJavaEnhancementContext,
         predefinedEnhancementInfo: PredefinedFunctionEnhancementInfo?,
         ownerParameter: FirJavaValueParameter,
-        index: Int
+        index: Int,
+        javaTypeParameterStack: JavaTypeParameterStack
     ): EnhanceValueParameterResult {
         val signatureParts = ownerFunction.partsForValueParameter(
             typeQualifierResolver,
             overriddenMembers,
             parameterContainer = ownerParameter,
             methodContext = memberContext,
-            typeInSignature = TypeInSignature.ValueParameter(hasReceiver, index)
+            typeInSignature = TypeInSignature.ValueParameter(hasReceiver, index),
+            javaTypeParameterStack = javaTypeParameterStack
         ).enhance(session, jsr305State, predefinedEnhancementInfo?.parametersInfo?.getOrNull(index))
         val firResolvedTypeRef = signatureParts.type
         val defaultValueExpression = when (val defaultValue = ownerParameter.getDefaultValueFromAnnotation()) {
@@ -329,7 +339,8 @@ class JavaClassEnhancementScope(
         owner: FirCallableMemberDeclaration<*>,
         overriddenMembers: List<FirCallableMemberDeclaration<*>>,
         memberContext: FirJavaEnhancementContext,
-        predefinedEnhancementInfo: PredefinedFunctionEnhancementInfo?
+        predefinedEnhancementInfo: PredefinedFunctionEnhancementInfo?,
+        javaTypeParameterStack: JavaTypeParameterStack
     ): FirResolvedTypeRef {
         val signatureParts = owner.parts(
             typeQualifierResolver,
@@ -339,7 +350,8 @@ class JavaClassEnhancementScope(
             containerApplicabilityType =
             if (owner is FirJavaField) AnnotationTypeQualifierResolver.QualifierApplicabilityType.FIELD
             else AnnotationTypeQualifierResolver.QualifierApplicabilityType.METHOD_RETURN_TYPE,
-            typeInSignature = TypeInSignature.Return
+            typeInSignature = TypeInSignature.Return,
+            javaTypeParameterStack = javaTypeParameterStack
         ).enhance(session, jsr305State, predefinedEnhancementInfo?.returnTypeInfo)
         return signatureParts.type
     }
@@ -387,7 +399,8 @@ class JavaClassEnhancementScope(
         // TODO: investigate if it's really can be a null (check properties' with extension overrides in Java)
         parameterContainer: FirAnnotationContainer?,
         methodContext: FirJavaEnhancementContext,
-        typeInSignature: TypeInSignature
+        typeInSignature: TypeInSignature,
+        javaTypeParameterStack: JavaTypeParameterStack
     ) = parts(
         typeQualifierResolver,
         overriddenMembers,
@@ -396,7 +409,8 @@ class JavaClassEnhancementScope(
             methodContext.copyWithNewDefaultTypeQualifiers(typeQualifierResolver, jsr305State, it.annotations)
         } ?: methodContext,
         AnnotationTypeQualifierResolver.QualifierApplicabilityType.VALUE_PARAMETER,
-        typeInSignature
+        typeInSignature,
+        javaTypeParameterStack
     )
 
     private fun FirCallableMemberDeclaration<*>.parts(
@@ -406,7 +420,8 @@ class JavaClassEnhancementScope(
         isCovariant: Boolean,
         containerContext: FirJavaEnhancementContext,
         containerApplicabilityType: AnnotationTypeQualifierResolver.QualifierApplicabilityType,
-        typeInSignature: TypeInSignature
+        typeInSignature: TypeInSignature,
+        javaTypeParameterStack: JavaTypeParameterStack
     ): EnhancementSignatureParts {
         val typeRef = typeInSignature.getTypeRef(this)
         return EnhancementSignatureParts(
