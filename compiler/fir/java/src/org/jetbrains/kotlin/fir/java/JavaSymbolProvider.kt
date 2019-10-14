@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.fir.java
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
+import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.fir.FirSession
@@ -92,20 +93,34 @@ class JavaSymbolProvider(
     ): JavaClassUseSiteScope {
         return scopeSession.getOrBuild(regularClass.symbol, JAVA_USE_SITE) {
             val declaredScope = declaredMemberScope(regularClass)
-            val superTypeEnhancementScopes =
-                lookupSuperTypes(regularClass, lookupInterfaces = true, deep = false, useSiteSession = useSiteSession)
-                    .mapNotNull { useSiteSuperType ->
-                        if (useSiteSuperType is ConeClassErrorType) return@mapNotNull null
-                        val symbol = useSiteSuperType.lookupTag.toSymbol(useSiteSession)
-                        if (symbol is FirClassSymbol && visitedSymbols.add(symbol)) {
-                            // We need JavaClassEnhancementScope here to have already enhanced signatures from supertypes
-                            val scope = buildJavaEnhancementScope(useSiteSession, symbol, scopeSession, visitedSymbols)
-                            visitedSymbols.remove(symbol)
-                            useSiteSuperType.wrapSubstitutionScopeIfNeed(useSiteSession, scope, symbol.fir, scopeSession)
-                        } else {
-                            null
-                        }
+            val superTypeEnhancementScopes = mutableListOf<FirScope>()
+            val useSiteSuperTypes = lookupSuperTypes(
+                regularClass, lookupInterfaces = true, deep = false, useSiteSession = useSiteSession
+            )
+            for (useSiteSuperType in useSiteSuperTypes) {
+                if (useSiteSuperType is ConeClassErrorType) continue
+                val lookupTag = useSiteSuperType.lookupTag
+                val symbol = lookupTag.toSymbol(useSiteSession)
+                if (symbol is FirClassSymbol && visitedSymbols.add(symbol)) {
+                    // We need JavaClassEnhancementScope here to have already enhanced signatures from supertypes
+                    val scope = buildJavaEnhancementScope(useSiteSession, symbol, scopeSession, visitedSymbols)
+                    visitedSymbols.remove(symbol)
+                    superTypeEnhancementScopes += useSiteSuperType.wrapSubstitutionScopeIfNeed(
+                        useSiteSession, scope, symbol.fir, scopeSession
+                    )
+                }
+                val mappedId = JavaToKotlinClassMap.mapKotlinToJava(lookupTag.classId.asSingleFqName().toUnsafe())
+                if (mappedId != null) {
+                    val mappedSymbol = ConeClassLikeLookupTagImpl(mappedId).toSymbol(useSiteSession)
+                    if (mappedSymbol is FirClassSymbol && visitedSymbols.add(mappedSymbol)) {
+                        val scope = buildJavaUseSiteScope(mappedSymbol.fir, useSiteSession, scopeSession, visitedSymbols)
+                        visitedSymbols.remove(mappedSymbol)
+                        superTypeEnhancementScopes += useSiteSuperType.wrapSubstitutionScopeIfNeed(
+                            useSiteSession, scope, mappedSymbol.fir, scopeSession
+                        )
                     }
+                }
+            }
             JavaClassUseSiteScope(
                 regularClass, useSiteSession,
                 FirSuperTypeScope(useSiteSession, superTypeEnhancementScopes), declaredScope
@@ -135,7 +150,7 @@ class JavaSymbolProvider(
     ) {
         require(this is FirTypeParameterImpl)
         for (upperBound in javaTypeParameter.upperBounds) {
-            bounds += upperBound.toFirResolvedTypeRef(this@JavaSymbolProvider.session, stack)
+            bounds += upperBound.toFirJavaTypeRef(this@JavaSymbolProvider.session, stack)
         }
         addDefaultBoundIfNecessary()
     }
@@ -185,8 +200,8 @@ class JavaSymbolProvider(
                     this.typeParameters += foundClass.typeParameters.convertTypeParameters(javaTypeParameterStack)
                     addAnnotationsFrom(this@JavaSymbolProvider.session, javaClass, javaTypeParameterStack)
                     for (supertype in javaClass.supertypes) {
-                        superTypeRefs += supertype.toFirResolvedTypeRef(
-                            this@JavaSymbolProvider.session, javaTypeParameterStack, mapToKotlin = false
+                        superTypeRefs += supertype.toFirJavaTypeRef(
+                            this@JavaSymbolProvider.session, javaTypeParameterStack
                         )
                     }
                     // TODO: may be we can process fields & methods later.
@@ -213,6 +228,7 @@ class JavaSymbolProvider(
                         val methodId = CallableId(classId.packageFqName, classId.relativeClassName, methodName)
                         val methodSymbol = FirNamedFunctionSymbol(methodId)
                         val returnType = javaMethod.returnType
+                        val methodTypeParameters = javaMethod.typeParameters.convertTypeParameters(javaTypeParameterStack)
                         val firJavaMethod = FirJavaMethod(
                             this@JavaSymbolProvider.session, (javaMethod as? JavaElementImpl<*>)?.psi,
                             methodSymbol, methodName,
@@ -220,7 +236,7 @@ class JavaSymbolProvider(
                             returnTypeRef = returnType.toFirJavaTypeRef(this@JavaSymbolProvider.session, javaTypeParameterStack),
                             isStatic = javaMethod.isStatic
                         ).apply {
-                            this.typeParameters += javaMethod.typeParameters.convertTypeParameters(javaTypeParameterStack)
+                            this.typeParameters += methodTypeParameters
                             addAnnotationsFrom(this@JavaSymbolProvider.session, javaMethod, javaTypeParameterStack)
                             for (valueParameter in javaMethod.valueParameters) {
                                 valueParameters += valueParameter.toFirValueParameters(

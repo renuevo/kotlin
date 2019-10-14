@@ -66,10 +66,7 @@ internal fun FirTypeRef.toNotNullConeKotlinType(
 ): ConeKotlinType =
     when (this) {
         is FirResolvedTypeRef -> type
-        is FirJavaTypeRef -> {
-            val javaType = type
-            javaType.toNotNullConeKotlinType(session, javaTypeParameterStack)
-        }
+        is FirJavaTypeRef -> javaType.toNotNullConeKotlinType(session, javaTypeParameterStack)
         else -> ConeKotlinErrorType("Unexpected type reference in JavaClassUseSiteScope: ${this::class.java}")
     }
 
@@ -83,7 +80,9 @@ internal fun JavaType.toFirJavaTypeRef(session: FirSession, javaTypeParameterSta
     val annotations = (this as? JavaClassifierType)?.annotations.orEmpty()
     return FirJavaTypeRef(
         annotations = annotations.map { it.toFirAnnotationCall(session, javaTypeParameterStack) },
-        type = this
+        javaType = this,
+        session = session,
+        javaTypeParameterStack = javaTypeParameterStack
     )
 }
 

@@ -58,7 +58,7 @@ internal fun FirJavaTypeRef.enhance(
     javaTypeParameterStack: JavaTypeParameterStack,
     qualifiers: IndexedJavaTypeQualifiers
 ): FirResolvedTypeRef {
-    return type.enhancePossiblyFlexible(session, javaTypeParameterStack, annotations, qualifiers, 0)
+    return javaType.enhancePossiblyFlexible(session, javaTypeParameterStack, annotations, qualifiers, 0)
 }
 
 // The index in the lambda is the position of the type component:
