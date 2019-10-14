@@ -12,6 +12,7 @@ import org.jdom.output.XMLOutputter
 import org.jetbrains.kotlin.gradle.generators.GradleTestsRootClass
 import org.jetbrains.kotlin.gradle.model.ModelContainer
 import org.jetbrains.kotlin.gradle.model.ModelFetcherBuildAction
+import org.jetbrains.kotlin.gradle.plugin.internal.KOTLIN_NATIVE_JVM_ARGS_PROPERTY
 import org.jetbrains.kotlin.gradle.util.*
 import org.jetbrains.kotlin.kapt3.base.util.measureTimeMillisWithResult
 import org.jetbrains.kotlin.test.util.trimTrailingWhitespaces
@@ -26,6 +27,7 @@ import kotlin.test.*
 
 val SYSTEM_LINE_SEPARATOR: String = System.getProperty("line.separator")
 const val TEST_GRADLE_JVM_ARGS = "-Xmx1024m -XX:MaxMetaspaceSize=512m"
+const val TEST_KOTLIN_NATIVE_JVM_ARGS = "-Xmx1500m -XX:MaxMetaspaceSize=512m"
 
 @GradleTestsRootClass
 abstract class BaseGradleIT {
@@ -239,6 +241,7 @@ abstract class BaseGradleIT {
             copyRecursively(this.resourcesRoot, workingDir)
             withProperties(projectDir.resolve("gradle.properties")) { gradleProperties ->
                 gradleProperties["org.gradle.jvmargs"] = TEST_GRADLE_JVM_ARGS
+                gradleProperties[KOTLIN_NATIVE_JVM_ARGS_PROPERTY] = TEST_KOTLIN_NATIVE_JVM_ARGS
             }
         }
 

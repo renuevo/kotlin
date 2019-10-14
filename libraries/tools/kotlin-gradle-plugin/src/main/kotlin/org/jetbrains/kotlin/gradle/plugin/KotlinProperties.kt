@@ -18,6 +18,7 @@ package org.jetbrains.kotlin.gradle.plugin
 
 import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.dsl.Coroutines
+import org.jetbrains.kotlin.gradle.plugin.internal.KOTLIN_NATIVE_JVM_ARGS_PROPERTY
 import org.jetbrains.kotlin.gradle.targets.native.DisabledNativeTargetsReporter
 import org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
@@ -138,7 +139,7 @@ internal class PropertiesProvider(private val project: Project) {
      * Allows a user to specify additional arguments of a JVM executing a K/N compiler.
      */
     val nativeJvmArgs: String?
-        get() = propertyWithDeprecatedVariant("kotlin.native.jvmArgs", "org.jetbrains.kotlin.native.jvmArgs")
+        get() = propertyWithDeprecatedVariant(KOTLIN_NATIVE_JVM_ARGS_PROPERTY, "org.jetbrains.kotlin.native.jvmArgs")
 
     /**
      * Generate kotlin/js external declarations from all .d.ts files found in npm modules
