@@ -9,13 +9,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
 import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.FirTypeParameter
 import org.jetbrains.kotlin.fir.declarations.addDefaultBoundIfNecessary
-import org.jetbrains.kotlin.fir.declarations.impl.FirDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.impl.FirTypeParameterImpl
 import org.jetbrains.kotlin.fir.declarations.visibility
 import org.jetbrains.kotlin.fir.java.declarations.FirJavaClass
@@ -187,7 +185,9 @@ class JavaSymbolProvider(
                     this.typeParameters += foundClass.typeParameters.convertTypeParameters(javaTypeParameterStack)
                     addAnnotationsFrom(this@JavaSymbolProvider.session, javaClass, javaTypeParameterStack)
                     for (supertype in javaClass.supertypes) {
-                        superTypeRefs += supertype.toFirResolvedTypeRef(this@JavaSymbolProvider.session, javaTypeParameterStack)
+                        superTypeRefs += supertype.toFirResolvedTypeRef(
+                            this@JavaSymbolProvider.session, javaTypeParameterStack, mapToKotlin = false
+                        )
                     }
                     // TODO: may be we can process fields & methods later.
                     // However, they should be built up to override resolve stage
