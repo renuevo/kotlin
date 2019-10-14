@@ -91,19 +91,19 @@ abstract class AbstractFirDiagnosticsSmokeTest : BaseDiagnosticsTest() {
             }
         }
 
-        val failure: AssertionError? = try {
-            doFirResolveTestBench(firFiles, FirTotalResolveTransformer().transformers, gc = false)
-            null
-        } catch (e: AssertionError) {
-            e
-        }
-        val failureFile = File(testDataFile.path.replace(".kt", ".fir.fail"))
-        if (failure == null) {
-            checkResultingFirFiles(firFiles, testDataFile)
-            assertFalse("Test is good but there is expected exception", failureFile.exists())
-        } else {
-            checkFailureFile(failure, failureFile)
-        }
+        doFirResolveTestBench(firFiles, FirTotalResolveTransformer().transformers, gc = false)
+        checkResultingFirFiles(firFiles, testDataFile)
+//        val failure: AssertionError? = try {
+//            null
+//        } catch (e: AssertionError) {
+//            e
+//        }
+//        val failureFile = File(testDataFile.path.replace(".kt", ".fir.fail"))
+//        if (failure == null) {
+//            assertFalse("Test is good but there is expected exception", failureFile.exists())
+//        } else {
+//            checkFailureFile(failure, failureFile)
+//        }
     }
 
     protected open fun checkResultingFirFiles(
