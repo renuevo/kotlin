@@ -25,7 +25,6 @@ import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtTypeParameterListOwner
 import org.jetbrains.kotlin.resolve.jvm.diagnostics.JvmDeclarationOriginKind
-import org.jetbrains.kotlin.types.KotlinType
 
 internal abstract class KtUltraLightMethod(
     internal val delegate: PsiMethod,
@@ -37,6 +36,37 @@ internal abstract class KtUltraLightMethod(
     lightMemberOrigin,
     containingClass
 ), KtUltraLightElementWithNullabilityAnnotation<KtDeclaration, PsiMethod> {
+
+    private class KtUltraLightThrowsReferenceListBuilder(private val parentMethod: PsiMethod) :
+        KotlinLightReferenceListBuilder(parentMethod.manager, parentMethod.language, PsiReferenceList.Role.THROWS_LIST) {
+        override fun getParent() = parentMethod
+        override fun getContainingFile() = parentMethod.containingFile
+    }
+
+    protected fun computeThrowsList(methodDescriptor: FunctionDescriptor?): PsiReferenceList {
+        val builder = KtUltraLightThrowsReferenceListBuilder(parentMethod = this)
+
+        if (methodDescriptor !== null) {
+            for (ex in FunctionCodegen.getThrownExceptions(methodDescriptor)) {
+                val psiClassType = ex.defaultType.asPsiType(support, TypeMappingMode.DEFAULT, builder) as? PsiClassType
+                psiClassType ?: continue
+                builder.addReference(psiClassType)
+            }
+        }
+
+        return builder
+    }
+
+    protected fun computeCheckNeedToErasureParametersTypes(methodDescriptor: FunctionDescriptor?): Boolean {
+        return methodDescriptor
+            ?.getSpecialSignatureInfo()
+            ?.let { it.valueParametersSignature !== null }
+            ?: false
+    }
+
+    abstract override fun buildTypeParameterList(): PsiTypeParameterList
+
+    abstract val checkNeedToErasureParametersTypes: Boolean
 
     override val memberIndex: MemberIndex? = null
 
@@ -53,23 +83,6 @@ internal abstract class KtUltraLightMethod(
 
     // should be in super
     override fun isVarArgs() = PsiImplUtil.isVarArgs(this)
-
-    abstract override fun buildTypeParameterList(): PsiTypeParameterList
-
-    private val _throwsList: PsiReferenceList by lazyPub {
-        val list =
-            object : KotlinLightReferenceListBuilder(manager, language, PsiReferenceList.Role.THROWS_LIST) {
-                override fun getParent() = this@KtUltraLightMethod
-                override fun getContainingFile() = this@KtUltraLightMethod.containingFile
-            }
-        methodDescriptor?.let {
-            for (ex in FunctionCodegen.getThrownExceptions(it)) {
-                val psiClassType = ex.defaultType.asPsiType(support, TypeMappingMode.DEFAULT, list) as? PsiClassType ?: continue
-                list.addReference(psiClassType)
-            }
-        }
-        list
-    }
 
     private val _deprecated: Boolean by lazyPub { kotlinOrigin?.isDeprecated(support) ?: false }
 
@@ -89,17 +102,6 @@ internal abstract class KtUltraLightMethod(
 
     override fun findSuperMethods(parentClass: PsiClass?): Array<out PsiMethod> =
         PsiSuperMethodImplUtil.findSuperMethods(this, parentClass)
-
-    override fun getThrowsList(): PsiReferenceList = _throwsList
-
-    abstract val methodDescriptor: FunctionDescriptor?
-
-    val checkNeedToErasureParametersTypes: Boolean by lazyPub {
-        methodDescriptor
-            ?.getSpecialSignatureInfo()
-            ?.let { it.valueParametersSignature !== null }
-            ?: false
-    }
 
     override fun equals(other: Any?): Boolean = this === other
 
@@ -127,8 +129,11 @@ internal class KtUltraLightMethodForSourceDeclaration(
         containingClass: KtLightClass
     ) : this(delegate, LightMemberOriginForDeclaration(declaration, JvmDeclarationOriginKind.OTHER), support, containingClass)
 
-    override val kotlinTypeForNullabilityAnnotation: KotlinType?
-        get() = if (forceToSkipNullabilityAnnotation) null else kotlinOrigin?.getKotlinType()
+    override val qualifiedNameForNullabilityAnnotation: String?
+        get() {
+            val typeForAnnotation = if (forceToSkipNullabilityAnnotation) null else kotlinOrigin?.getKotlinType()
+            return computeQualifiedNameForNullabilityAnnotation(typeForAnnotation)
+        }
 
     override fun buildTypeParameterList(): PsiTypeParameterList {
         val origin = kotlinOrigin
@@ -137,11 +142,16 @@ internal class KtUltraLightMethodForSourceDeclaration(
         else LightTypeParameterListBuilder(manager, language)
     }
 
-    override val methodDescriptor = kotlinOrigin?.resolve() as? FunctionDescriptor
+    private val methodDescriptor get() = kotlinOrigin?.resolve() as? FunctionDescriptor
+
+    private val _throwsList: PsiReferenceList by lazyPub { computeThrowsList(methodDescriptor) }
+    override fun getThrowsList(): PsiReferenceList = _throwsList
+
+    override val checkNeedToErasureParametersTypes: Boolean by lazyPub { computeCheckNeedToErasureParametersTypes(methodDescriptor) }
 }
 
 internal class KtUltraLightMethodForDescriptor(
-    override val methodDescriptor: FunctionDescriptor,
+    methodDescriptor: FunctionDescriptor,
     delegate: LightMethodBuilder,
     lightMemberOrigin: LightMemberOrigin?,
     support: KtUltraLightSupport,
@@ -152,11 +162,16 @@ internal class KtUltraLightMethodForDescriptor(
     support,
     containingClass
 ) {
-    override fun buildTypeParameterList() = buildTypeParameterList(methodDescriptor, this, support)
+    private val _buildTypeParameterList = buildTypeParameterList(methodDescriptor, this, support)
+    override fun buildTypeParameterList() = _buildTypeParameterList
 
-    override val kotlinTypeForNullabilityAnnotation: KotlinType?
-        get() = methodDescriptor.returnType
+    private val _throwsList: PsiReferenceList = computeThrowsList(methodDescriptor)
+    override fun getThrowsList(): PsiReferenceList = _throwsList
 
-    override val givenAnnotations: List<KtLightAbstractAnnotation>
-        get() = methodDescriptor.obtainLightAnnotations(support, this)
+    override val qualifiedNameForNullabilityAnnotation: String? =
+        computeQualifiedNameForNullabilityAnnotation(methodDescriptor.returnType)
+
+    override val givenAnnotations: List<KtLightAbstractAnnotation> = methodDescriptor.obtainLightAnnotations(support, this)
+
+    override val checkNeedToErasureParametersTypes: Boolean = computeCheckNeedToErasureParametersTypes(methodDescriptor)
 }

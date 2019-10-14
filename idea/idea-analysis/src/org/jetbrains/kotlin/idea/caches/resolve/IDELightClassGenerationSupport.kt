@@ -99,9 +99,9 @@ class IDELightClassGenerationSupport(private val project: Project) : LightClassG
             return false
         }
 
-        override val moduleDescriptor by lazyPub {
-            element.getResolutionFacade().moduleDescriptor
-        }
+        private val resolutionFacade get() = element.getResolutionFacade()
+
+        override val moduleDescriptor get() = resolutionFacade.moduleDescriptor
 
         override val moduleName: String by lazyPub {
             JvmCodegenUtil.getModuleName(moduleDescriptor)
@@ -137,7 +137,7 @@ class IDELightClassGenerationSupport(private val project: Project) : LightClassG
         }
 
         override val deprecationResolver: DeprecationResolver by lazyPub {
-            element.getResolutionFacade().getFrontendService(DeprecationResolver::class.java)
+            resolutionFacade.getFrontendService(DeprecationResolver::class.java)
         }
 
         override val typeMapper: KotlinTypeMapper by lazyPub {
